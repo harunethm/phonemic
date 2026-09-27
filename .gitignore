@@ -1,0 +1,20 @@
+# Local build output only, never committed - published via GitHub Releases instead.
+windows-release/*.exe
+windows-release/*.zip
+macos-release/*.dmg
+macos-release/*.app
+macos-release/*.zip
+android-release/*.apk
+
+# Mirrored app source (via ../sync-source.sh) - build output, not source
+PhoneMic-Android/.gradle/
+PhoneMic-Android/.kotlin/
+PhoneMic-Android/app/build/
+PhoneMic-Android/local.properties
+PhoneMic-Desktop/.gradle/
+PhoneMic-Desktop/build/
+PhoneMic-Desktop/dist/
+
+.idea/
+*.iml
+.DS_Store

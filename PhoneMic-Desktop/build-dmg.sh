@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Rebuilds PhoneMic-Desktop and packages it as a standalone macOS .app (with its own
+# bundled Java runtime) into a .dmg, then drops it in ../phonemic/macos-release/ for
+# publishing via release.sh.
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+: "${JAVA_HOME:?Set JAVA_HOME to a JDK 17+ install, e.g. /Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home}"
+
+./gradlew installDist
+rm -rf dist
+
+"$JAVA_HOME/bin/jpackage" \
+  --type dmg \
+  --input build/install/PhoneMic-Desktop/lib \
+  --dest dist \
+  --name "PhoneMic-Desktop" \
+  --main-jar "PhoneMic-Desktop.jar" \
+  --main-class "com.scylla.tool.phonemic.pc.MainKt" \
+  --icon "src/main/resources/icons/app-icon.icns" \
+  --app-version "1.0.1" \
+  --vendor "Scylla"
+
+release_dir="../phonemic/macos-release"
+mkdir -p "$release_dir"
+cp dist/PhoneMic-Desktop-1.0.1.dmg "$release_dir/PhoneMic-Desktop-macos.dmg"
+
+echo "Done. Published to $release_dir/PhoneMic-Desktop-macos.dmg"

@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phone Mic — turn your phone into a wireless desktop mic</title>
+<meta name="description" content="Stream your phone's microphone to your Windows or macOS desktop over WiFi. Scan a QR code, pick a capture scenario, done. No cloud, no account, no cables.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F2229'/%3E%3Cpath d='M16 6a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0v-6a4 4 0 0 1 4-4Z' fill='%23F2A34D'/%3E%3Cpath d='M9 16a7 7 0 0 0 14 0M16 23v3' stroke='%2359C7B0' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F2229; --bg-2:#16323C; --bg-3:#1C3D48;
+    --ink:#EAF3F1; --ink-muted:#9FB8B7; --ink-faint:#6E8E8C;
+    --accent:#F2A34D; --accent-ink:#241405;
+    --accent-2:#59C7B0; --accent-2-ink:#062622;
+    --edge:rgba(255,255,255,0.09);
+    --radius:16px;
+    --font-display:'Sora',system-ui,sans-serif;
+    --font-body:'IBM Plex Sans',system-ui,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--font-body); line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  img,svg{display:block; max-width:100%;}
+
+  .wrap{max-width:1100px; margin:0 auto; padding-inline:24px;}
+  h1,h2,h3{font-family:var(--font-display); line-height:1.15; margin:0; text-wrap:balance;}
+  .eyebrow{
+    font-family:var(--font-mono); font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--accent-2); display:inline-flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--accent-2);}
+  p{color:var(--ink-muted); margin:0;}
+  .lede{font-size:1.15rem; max-width:52ch;}
+
+  /* nav */
+  header.site{
+    position:sticky; top:0; z-index:10; backdrop-filter:blur(10px);
+    background:color-mix(in srgb, var(--bg) 82%, transparent);
+    border-bottom:1px solid var(--edge);
+  }
+  .nav{display:flex; align-items:center; justify-content:space-between; padding-block:14px;}
+  .brand{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:700; font-size:1.05rem;}
+  .brand svg{width:28px; height:28px;}
+  .nav-links{display:flex; align-items:center; gap:24px; font-size:0.92rem; color:var(--ink-muted);}
+  .nav-links a:hover{color:var(--ink);}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; font-family:var(--font-body); font-weight:600;
+    font-size:0.94rem; padding:11px 20px; border-radius:999px; text-decoration:none; border:1px solid transparent;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn svg{width:18px; height:18px; flex-shrink:0;}
+  .btn-primary{background:var(--accent); color:var(--accent-ink);}
+  .btn-ghost{border-color:var(--edge); color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--ink-faint);}
+  .btn-sm{padding:8px 14px; font-size:0.85rem;}
+  .btn-disabled{
+    background:transparent; border-color:var(--edge); color:var(--ink-faint);
+    cursor:default; pointer-events:none;
+  }
+  .btn-disabled:hover{transform:none;}
+
+  /* hero */
+  .hero{
+    padding-block:88px 64px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(60% 50% at 82% 8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
+      radial-gradient(50% 45% at 10% 30%, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 60%);
+  }
+  .hero-grid{display:grid; grid-template-columns:1.1fr 0.9fr; gap:48px; align-items:center;}
+  @media (max-width:860px){.hero-grid{grid-template-columns:1fr;}}
+  .hero h1{font-size:clamp(2.2rem,4.6vw,3.4rem); font-weight:800; margin-block:18px 16px;}
+  .hero h1 .hl{color:var(--accent);}
+  .cta-row{display:flex; flex-wrap:wrap; gap:12px; margin-top:28px;}
+  .hero-note{margin-top:14px; font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-faint);}
+
+  .diagram{
+    background:var(--bg-2); border:1px solid var(--edge); border-radius:var(--radius);
+    padding:32px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .diagram .node{display:flex; flex-direction:column; align-items:center; gap:10px; flex:1;}
+  .diagram .node .icon-box{
+    width:64px; height:64px; border-radius:18px; background:var(--bg-3); display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--edge);
+  }
+  .diagram .node span{font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-muted); text-align:center;}
+  .diagram .link{flex:1.3; display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--accent-2);}
+  .diagram .waves{display:flex; gap:4px; align-items:flex-end; height:22px;}
+  .diagram .waves i{width:3px; background:var(--accent-2); border-radius:2px; animation:pulse 1.2s ease-in-out infinite;}
+  .diagram .waves i:nth-child(1){height:8px; animation-delay:0s;}
+  .diagram .waves i:nth-child(2){height:16px; animation-delay:.15s;}
+  .diagram .waves i:nth-child(3){height:22px; animation-delay:.3s;}
+  .diagram .waves i:nth-child(4){height:14px; animation-delay:.45s;}
+  .diagram .waves i:nth-child(5){height:8px; animation-delay:.6s;}
+  @keyframes pulse{0%,100%{opacity:.4; transform:scaleY(.7);} 50%{opacity:1; transform:scaleY(1);}}
+  @media (prefers-reduced-motion: reduce){.diagram .waves i{animation:none;}}
+  .diagram .link small{font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-faint);}
+
+  /* sections */
+  section{padding-block:72px;}
+  .section-head{max-width:640px; margin-bottom:40px;}
+  .section-head h2{font-size:clamp(1.6rem,3vw,2.1rem); margin-top:12px;}
+
+  .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  @media (max-width:780px){.steps{grid-template-columns:1fr;}}
+  .step{background:var(--bg-2); border:1px solid var(--edge); border-radius:var(--radius); padding:26px;}
+  .step .num{font-family:var(--font-mono); color:var(--accent); font-size:0.85rem;}
+  .step h3{font-size:1.1rem; margin-block:10px 8px;}
+  .step p{font-size:0.94rem;}
+
+  .cable-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  @media (max-width:780px){.cable-grid{grid-template-columns:1fr;}}
+  .cable-card{background:var(--bg-2); border:1px solid var(--edge); border-radius:var(--radius); padding:24px;}
+  .cable-head{display:flex; align-items:center; gap:10px; color:var(--accent-2);}
+  .cable-head h3{font-size:1.02rem; color:var(--ink);}
+  .cable-card > p{font-size:0.92rem; margin-top:8px;}
+  .cable-code{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--bg); border:1px solid var(--edge); border-radius:10px;
+    padding:10px 12px; margin-top:16px;
+  }
+  .cable-code code{font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .copy-btn{
+    display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+    background:transparent; border:1px solid var(--edge); border-radius:8px;
+    color:var(--ink); font-family:var(--font-body); font-size:0.78rem; font-weight:600;
+    padding:6px 10px; cursor:pointer; transition:border-color .15s ease, color .15s ease;
+  }
+  .copy-btn:hover{border-color:var(--accent-2); color:var(--accent-2);}
+  .copy-btn.copied{border-color:var(--accent-2); color:var(--accent-2);}
+  .cable-steps{margin:14px 0 0; padding-left:20px; display:flex; flex-direction:column; gap:6px;}
+  .cable-steps li{font-size:0.88rem; color:var(--ink-muted);}
+  .cable-steps code{font-family:var(--font-mono); font-size:0.82em; color:var(--ink);}
+
+  .features{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  @media (max-width:900px){.features{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:600px){.features{grid-template-columns:1fr;}}
+  .feature{padding:24px; border-radius:var(--radius); border:1px solid var(--edge);}
+  .feature .icon{
+    width:42px; height:42px; border-radius:12px; background:color-mix(in srgb, var(--accent-2) 16%, transparent);
+    display:flex; align-items:center; justify-content:center; color:var(--accent-2); margin-bottom:14px;
+  }
+  .feature h3{font-size:1.02rem; margin-bottom:6px;}
+  .feature p{font-size:0.9rem;}
+
+  .trust{background:var(--bg-2); border-top:1px solid var(--edge); border-bottom:1px solid var(--edge);}
+  .trust-grid{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;}
+  @media (max-width:780px){.trust-grid{grid-template-columns:1fr;}}
+  .trust ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;}
+  .trust li{display:flex; gap:12px; font-size:0.95rem; color:var(--ink-muted);}
+  .trust li svg{flex-shrink:0; color:var(--accent-2); margin-top:2px;}
+  .trust li b{color:var(--ink);}
+
+  .download{
+    text-align:center; background:
+      radial-gradient(60% 80% at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%);
+  }
+  .download h2{font-size:clamp(1.8rem,3.4vw,2.4rem);}
+  .download .cta-row{justify-content:center;}
+  .download-group{margin-top:40px; padding-top:32px; border-top:1px solid var(--edge);}
+  .download-group:first-of-type{margin-top:32px;}
+  .download-group h3{font-size:1.05rem; color:var(--ink);}
+  .version-chip{
+    font-family:var(--font-mono); font-size:0.75rem; color:var(--ink-faint); margin-top:16px;
+  }
+
+  footer{border-top:1px solid var(--edge); padding-block:32px;}
+  .footer-row{display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; align-items:center;}
+  .footer-links{display:flex; gap:20px; font-size:0.88rem; color:var(--ink-muted);}
+  .footer-links a:hover{color:var(--ink);}
+  footer .credit{font-family:var(--font-mono); font-size:0.75rem; color:var(--ink-faint);}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <nav class="wrap nav">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#16323C"/><path d="M16 6a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0v-6a4 4 0 0 1 4-4Z" fill="#F2A34D"/><path d="M9 16a7 7 0 0 0 14 0M16 23v3" stroke="#59C7B0" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      Phone Mic
+    </div>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/harunethm/phonemic" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Free · Open source · Works over your own WiFi</span>
+      <h1>Your mic died.<br>Your phone <span class="hl">didn't.</span></h1>
+      <p class="lede">Phone Mic turns any Android phone into a low-latency wireless microphone for your Windows or macOS desktop. Scan a QR code, pick a capture scenario, and you're live in your game or Discord call — no cables, no cloud account, no subscription.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/harunethm/phonemic/releases/download/windows-latest/PhoneMic-Desktop-windows.zip" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn btn-primary" href="https://github.com/harunethm/phonemic/releases/download/macos-latest/PhoneMic-Desktop-macos.dmg" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.415 2.06-1.246 2.76-.885.75-1.858 1.14-2.916 1.06-.03-1.12.41-2.05 1.28-2.79.83-.7 1.79-1.08 2.882-1.03zM20.5 17.14c-.53 1.19-1.17 2.28-1.93 3.27-1.04 1.36-2.09 2.72-3.6 2.72-1.47 0-1.95-.9-3.6-.9-1.65 0-2.24.88-3.6.9-1.5.02-2.63-1.42-3.68-2.78-1.98-2.57-3.48-6.7-1.47-9.62.99-1.44 2.62-2.36 4.4-2.4 1.36-.02 2.5.9 3.28.9.78 0 2.2-1.1 3.72-.94.63.03 2.39.25 3.62 1.92-1.02.65-1.82 1.7-1.82 3.02 0 1.6.98 2.48 1.28 2.85z"/></svg>
+          Download for macOS
+        </a>
+        <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
+      </div>
+      <div class="hero-note">v1.1 · Windows 10/11 / macOS · Android 7.0+</div>
+    </div>
+
+    <div class="diagram">
+      <div class="node">
+        <div class="icon-box">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#EAF3F1" stroke-width="1.6"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+        </div>
+        <span>Phone Mic app</span>
+      </div>
+      <div class="link">
+        <div class="waves"><i></i><i></i><i></i><i></i><i></i></div>
+        <small>WiFi · UDP · ~10ms frames</small>
+      </div>
+      <div class="node">
+        <div class="icon-box">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#EAF3F1" stroke-width="1.6"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <span>Desktop receiver</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>Three steps, no typing IP addresses.</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">01</div>
+        <h3>Scan the code</h3>
+        <p>Launch the desktop receiver — it shows a QR code and pairing PIN immediately. Scan it from the phone app, or type the three fields by hand.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h3>Pick a scenario</h3>
+        <p>Speaker nearby, distant voice, or music — each tunes gain and noise suppression for that situation.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h3>Go live</h3>
+        <p>Tap Start. The desktop app plays your phone's mic into a virtual audio cable, so Discord, your game, or any app sees it as a real microphone.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Features</span>
+      <h2>Built for real-time voice, not file transfer.</h2>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2M14 19h2M19 19h2"/></svg></div>
+        <h3>QR + PIN pairing</h3>
+        <p>Pair by camera scan or manual entry. A rotating PIN means only devices you've actually paired can stream to your desktop.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></div>
+        <h3>Sub-frame latency</h3>
+        <p>Raw PCM over UDP in 10ms chunks. A dropped frame is inaudible; waiting for a retransmit isn't — so we don't wait.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Connection quality</h3>
+        <p>Live Excellent/Good/Poor/Lost feedback on the phone, driven by real packet-loss stats from the desktop side.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z"/><path d="M5 13a7 7 0 0 0 14 0M12 20v2"/></svg></div>
+        <h3>Noise suppression</h3>
+        <p>Platform noise suppression, AGC, and echo cancellation applied per scenario — skipped automatically for the Music preset so it doesn't get mangled.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4v16h16M4 15l4-5 4 3 6-8"/></svg></div>
+        <h3>Jitter buffer + concealment</h3>
+        <p>Out-of-order packets get reordered; a real gap is concealed instead of playing back as a click or glitch.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 8a5 5 0 0 0-9.9-1A4.5 4.5 0 0 0 8 16h9a3.5 3.5 0 0 0 0-7c-.1 0-.2 0-.3.01"/><path d="M4 4l16 16" stroke-width="1.8"/></svg></div>
+        <h3>No cloud, no account</h3>
+        <p>Everything runs over your own WiFi. No signup, no relay server, no data leaving your network.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="trust">
+  <div class="wrap trust-grid">
+    <div>
+      <span class="eyebrow">Why local-only</span>
+      <h2>Your voice never leaves your network.</h2>
+      <p style="margin-top:12px;">Most "phone as mic" apps either need an account or route audio through a third-party relay. Phone Mic doesn't — the phone talks directly to your PC over WiFi, and that's the whole path.</p>
+    </div>
+    <ul>
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span><b>No servers.</b> Pairing, audio, and quality feedback all stay on your LAN.</span></li>
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span><b>No account.</b> Install and go — nothing to sign up for.</span></li>
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span><b>Open source.</b> Every line of the pairing and audio pipeline is public — read it, fork it, send a PR.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="open-source">
+  <div class="wrap" style="text-align:center;">
+    <span class="eyebrow" style="justify-content:center;">Open source</span>
+    <h2 style="margin-top:12px;">No black box. Clone it, read it, change it.</h2>
+    <p style="max-width:52ch; margin:12px auto 0;">Phone Mic is MIT-licensed and built in the open. Star it, file an issue, or send a pull request — contributions welcome.</p>
+    <div class="cta-row" style="justify-content:center; margin-top:24px;">
+      <a class="btn btn-primary" href="https://github.com/harunethm/phonemic" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-1.05-.01-1.9-2.78.62-3.37-1.22-3.37-1.22-.45-1.18-1.11-1.5-1.11-1.5-.9-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.65.34-1.11.62-1.36-2.22-.26-4.56-1.13-4.56-5.02 0-1.11.38-2.01 1.01-2.72-.1-.26-.44-1.29.1-2.68 0 0 .83-.27 2.71 1.04a9.2 9.2 0 0 1 4.94 0c1.88-1.31 2.71-1.04 2.71-1.04.54 1.39.2 2.42.1 2.68.63.71 1.01 1.61 1.01 2.72 0 3.9-2.35 4.76-4.58 5.01.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+        View source on GitHub
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/harunethm/phonemic/issues" target="_blank" rel="noopener">Report an issue</a>
+    </div>
+  </div>
+</section>
+
+<section id="virtual-cable">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">One-time setup</span>
+      <h2>Install a virtual audio cable first.</h2>
+      <p style="margin-top:10px;">Phone Mic needs somewhere on the desktop to hand off the audio stream as a real
+      microphone input. That's what a virtual audio cable does — install one before you run the
+      desktop receiver. Free, one download, no account.</p>
+    </div>
+    <div class="cable-grid">
+      <div class="cable-card">
+        <div class="cable-head">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+          <h3>Windows — VB-Audio Virtual Cable</h3>
+        </div>
+        <p>The page also lists paid A+B / C+D bundles — you only need the plain one below.</p>
+        <div class="cable-code">
+          <code>Download: "VB-CABLE Driver" zip (not A+B / C+D)</code>
+          <button class="copy-btn" type="button" data-copy-target="prompt-windows" aria-label="Copy AI agent prompt">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span>Copy AI prompt</span>
+          </button>
+        </div>
+        <textarea id="prompt-windows" hidden>Install VB-Audio Virtual Cable on my Windows PC so an app can send audio to a virtual microphone. On https://vb-audio.com/Cable/, download the plain "VB-CABLE Driver" zip (VBCABLE_Driver_Pack) - not the paid A+B or C+D bundles, I only need the single cable. Extract the zip, right-click VBCABLE_Setup_x64.exe, run as administrator, and reboot if prompted. Afterward, help me pick "CABLE Input (VB-Audio Virtual Cable)" as the output device in the Phone Mic desktop app, and set "CABLE Output (VB-Audio Virtual Cable)" as my microphone in Windows Sound settings (or directly in Discord/my game).</textarea>
+        <ol class="cable-steps">
+          <li>On the page below, download the plain <b>VB-CABLE Driver</b> zip (skip the A+B / C+D bundles).</li>
+          <li>Extract it, right-click <code>VBCABLE_Setup_x64.exe</code>, run as administrator.</li>
+          <li>Reboot if Windows asks you to.</li>
+        </ol>
+        <a class="btn btn-ghost btn-sm" href="https://vb-audio.com/Cable/" target="_blank" rel="noopener" style="margin-top:14px;">Download directly</a>
+      </div>
+      <div class="cable-card">
+        <div class="cable-head">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.415 2.06-1.246 2.76-.885.75-1.858 1.14-2.916 1.06-.03-1.12.41-2.05 1.28-2.79.83-.7 1.79-1.08 2.882-1.03zM20.5 17.14c-.53 1.19-1.17 2.28-1.93 3.27-1.04 1.36-2.09 2.72-3.6 2.72-1.47 0-1.95-.9-3.6-.9-1.65 0-2.24.88-3.6.9-1.5.02-2.63-1.42-3.68-2.78-1.98-2.57-3.48-6.7-1.47-9.62.99-1.44 2.62-2.36 4.4-2.4 1.36-.02 2.5.9 3.28.9.78 0 2.2-1.1 3.72-.94.63.03 2.39.25 3.62 1.92-1.02.65-1.82 1.7-1.82 3.02 0 1.6.98 2.48 1.28 2.85z"/></svg>
+          <h3>macOS — BlackHole</h3>
+        </div>
+        <p>Installed via Homebrew — there's also a 16ch/64ch version, you want 2ch.</p>
+        <div class="cable-code">
+          <code>brew install blackhole-2ch</code>
+          <button class="copy-btn" type="button" data-copy-target="prompt-macos" aria-label="Copy AI agent prompt">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span>Copy AI prompt</span>
+          </button>
+        </div>
+        <textarea id="prompt-macos" hidden>Install BlackHole on my Mac so an app can send audio to a virtual microphone. Install Homebrew first if I don't have it (see https://brew.sh), then run: brew install blackhole-2ch - specifically the 2ch version, not blackhole-16ch or blackhole-64ch. If apps don't see the new device right away, restart Core Audio with: sudo killall -9 coreaudiod (or just log out and back in). Afterward, help me pick "BlackHole 2ch" as the output device in the Phone Mic desktop app, and set "BlackHole 2ch" as my microphone in macOS Sound settings (or directly in Discord/my game).</textarea>
+        <ol class="cable-steps">
+          <li>Install Homebrew first if you don't have it: <a href="https://brew.sh" target="_blank" rel="noopener" style="color:var(--accent-2);">brew.sh</a>.</li>
+          <li>In Terminal, run <code>brew install blackhole-2ch</code> — specifically 2ch, not 16ch/64ch.</li>
+          <li>If apps don't see it right away, log out and back in (or restart).</li>
+        </ol>
+        <p style="font-size:0.82rem; margin-top:10px;">No Homebrew and don't want to install it? BlackHole's <a href="https://github.com/ExistentialAudio/BlackHole" target="_blank" rel="noopener" style="color:var(--accent-2); text-decoration:underline;">GitHub releases</a> also has a manual installer.</p>
+        <a class="btn btn-ghost btn-sm" href="https://existential.audio/blackhole/" target="_blank" rel="noopener" style="margin-top:14px;">Official site</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="download" id="download">
+  <div class="wrap">
+    <span class="eyebrow" style="justify-content:center;">Get started</span>
+    <h2 style="margin-top:12px;">Free for Windows, macOS + Android.</h2>
+
+    <div class="download-group">
+      <h3>Desktop receiver</h3>
+      <p style="max-width:46ch; margin:8px auto 0;">Requires a virtual audio cable app on the desktop side so the stream shows up as a real microphone — <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener" style="color:var(--accent-2); text-decoration:underline;">VB-Audio Virtual Cable</a> (Windows) or <a href="https://existential.audio/blackhole/" target="_blank" rel="noopener" style="color:var(--accent-2); text-decoration:underline;">BlackHole</a> (macOS), both free.</p>
+      <div class="cta-row" style="justify-content:center; margin-top:16px;">
+        <a class="btn btn-primary" href="https://github.com/harunethm/phonemic/releases/download/windows-latest/PhoneMic-Desktop-windows.zip" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn btn-primary" href="https://github.com/harunethm/phonemic/releases/download/macos-latest/PhoneMic-Desktop-macos.dmg" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.415 2.06-1.246 2.76-.885.75-1.858 1.14-2.916 1.06-.03-1.12.41-2.05 1.28-2.79.83-.7 1.79-1.08 2.882-1.03zM20.5 17.14c-.53 1.19-1.17 2.28-1.93 3.27-1.04 1.36-2.09 2.72-3.6 2.72-1.47 0-1.95-.9-3.6-.9-1.65 0-2.24.88-3.6.9-1.5.02-2.63-1.42-3.68-2.78-1.98-2.57-3.48-6.7-1.47-9.62.99-1.44 2.62-2.36 4.4-2.4 1.36-.02 2.5.9 3.28.9.78 0 2.2-1.1 3.72-.94.63.03 2.39.25 3.62 1.92-1.02.65-1.82 1.7-1.82 3.02 0 1.6.98 2.48 1.28 2.85z"/></svg>
+          Download for macOS
+        </a>
+      </div>
+    </div>
+
+    <div class="download-group">
+      <h3>Phone app</h3>
+      <p style="max-width:46ch; margin:8px auto 0;">Not on the Play Store yet — you'll need to allow "install unknown apps" for your browser once.</p>
+      <div class="cta-row" style="justify-content:center; margin-top:16px;">
+        <a class="btn btn-primary" href="https://github.com/harunethm/phonemic/releases/download/android-latest/PhoneMic-Android.apk" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 9v7a1 1 0 0 0 1 1h1v3a1 1 0 0 0 2 0v-3h4v3a1 1 0 0 0 2 0v-3h1a1 1 0 0 0 1-1V9H6zm12.5-4.3-1.4-1.4-1.8 1.8A6.98 6.98 0 0 0 12 4.5c-1.2 0-2.3.3-3.3.9L6.9 3.6 5.5 5l1.6 1.6C6.1 7.5 5.5 8.7 5.3 10h13.4c-.2-1.3-.8-2.5-1.7-3.4l1.5-1.5zM10 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm4 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+          Download APK (Android)
+        </a>
+        <a class="btn btn-disabled" aria-disabled="true" title="Not published yet">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3.5v17a1 1 0 0 0 1.5.87l14-8.5a1 1 0 0 0 0-1.74l-14-8.5A1 1 0 0 0 4 3.5z"/></svg>
+          Play Store — coming soon
+        </a>
+        <a class="btn btn-disabled" aria-disabled="true" title="No iOS app yet">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.415 2.06-1.246 2.76-.885.75-1.858 1.14-2.916 1.06-.03-1.12.41-2.05 1.28-2.79.83-.7 1.79-1.08 2.882-1.03zM20.5 17.14c-.53 1.19-1.17 2.28-1.93 3.27-1.04 1.36-2.09 2.72-3.6 2.72-1.47 0-1.95-.9-3.6-.9-1.65 0-2.24.88-3.6.9-1.5.02-2.63-1.42-3.68-2.78-1.98-2.57-3.48-6.7-1.47-9.62.99-1.44 2.62-2.36 4.4-2.4 1.36-.02 2.5.9 3.28.9.78 0 2.2-1.1 3.72-.94.63.03 2.39.25 3.62 1.92-1.02.65-1.82 1.7-1.82 3.02 0 1.6.98 2.48 1.28 2.85z"/></svg>
+          App Store — coming soon
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-row">
+    <div class="brand" style="font-size:0.95rem;">
+      <svg viewBox="0 0 32 32" width="22" height="22" fill="none"><rect width="32" height="32" rx="8" fill="#16323C"/><path d="M16 6a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0v-6a4 4 0 0 1 4-4Z" fill="#F2A34D"/><path d="M9 16a7 7 0 0 0 14 0M16 23v3" stroke="#59C7B0" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      Phone Mic
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/harunethm/phonemic" target="_blank" rel="noopener">Source</a>
+      <a href="https://github.com/harunethm/phonemic/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/harunethm/phonemic/issues" target="_blank" rel="noopener">Report an issue</a>
+    </div>
+    <div class="credit">Personal project · not affiliated with Discord, Microsoft, or VB-Audio</div>
+  </div>
+</footer>
+
+
+<script>
+document.querySelectorAll('.copy-btn[data-copy-target]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var target = document.getElementById(btn.getAttribute('data-copy-target'));
+    if (!target) return;
+    var text = target.value;
+    var label = btn.querySelector('span');
+    var reset = function () {
+      btn.classList.remove('copied');
+      if (label) label.textContent = 'Copy AI prompt';
+    };
+    var onCopied = function () {
+      btn.classList.add('copied');
+      if (label) label.textContent = 'Copied!';
+      setTimeout(reset, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(onCopied).catch(function () {});
+    } else {
+      target.hidden = false;
+      target.select();
+      try { document.execCommand('copy'); onCopied(); } catch (e) {}
+      target.hidden = true;
+    }
+  });
+});
+</script>
+</body>
+</html>
