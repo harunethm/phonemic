@@ -2,7 +2,7 @@
 setlocal
 
 rem Rebuilds PhoneMic-Desktop and packages it as a standalone Windows .exe (with its
-rem own bundled Java runtime), then drops a zip in ..\phonemic\windows-release\ for
+rem own bundled Java runtime), then drops a zip in ..\..\phonemic\windows-release\ for
 rem publishing via release.sh.
 
 if not defined JAVA_HOME (
@@ -28,7 +28,7 @@ if exist "%~dp0dist" rmdir /s /q "%~dp0dist"
   --vendor "Scylla"
 if errorlevel 1 exit /b 1
 
-set "RELEASE_DIR=%~dp0..\phonemic\windows-release"
+set "RELEASE_DIR=%~dp0..\..\phonemic\windows-release"
 if not exist "%RELEASE_DIR%" mkdir "%RELEASE_DIR%"
 powershell -NoProfile -Command "Compress-Archive -Path '%~dp0dist\PhoneMic-Desktop' -DestinationPath '%RELEASE_DIR%\PhoneMic-Desktop-windows.zip' -Force"
 

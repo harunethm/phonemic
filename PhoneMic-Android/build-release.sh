@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the release APK and drops it in ../phonemic/android-release/ for publishing
+# Builds the release APK and drops it in ../../phonemic/android-release/ for publishing
 # via release.sh.
 #
 # Signed if ~/.gradle/gradle.properties has PHONEMIC_RELEASE_STORE_FILE/STORE_PASSWORD/
@@ -11,7 +11,7 @@ cd "$(dirname "$0")"
 
 ./gradlew assembleRelease
 
-release_dir="../phonemic/android-release"
+release_dir="../../phonemic/android-release"
 mkdir -p "$release_dir"
 
 signed_apk="app/build/outputs/apk/release/app-release.apk"

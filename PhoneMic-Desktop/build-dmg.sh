@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Rebuilds PhoneMic-Desktop and packages it as a standalone macOS .app (with its own
-# bundled Java runtime) into a .dmg, then drops it in ../phonemic/macos-release/ for
+# bundled Java runtime) into a .dmg, then drops it in ../../phonemic/macos-release/ for
 # publishing via release.sh.
 
 set -euo pipefail
@@ -22,7 +22,7 @@ rm -rf dist
   --app-version "1.0.1" \
   --vendor "Scylla"
 
-release_dir="../phonemic/macos-release"
+release_dir="../../phonemic/macos-release"
 mkdir -p "$release_dir"
 cp dist/PhoneMic-Desktop-1.0.1.dmg "$release_dir/PhoneMic-Desktop-macos.dmg"
 
