@@ -4,6 +4,7 @@
 # publishing via release.sh.
 
 # jpackage on macOS rejects a 0.x major, so release 0.X.Y ships as app-version 1.X.Y.
+APP_VERSION="${APP_VERSION:-1.2.0}"
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -20,11 +21,11 @@ rm -rf dist
   --main-jar "PhoneMic-Desktop.jar" \
   --main-class "com.scylla.tool.phonemic.pc.MainKt" \
   --icon "src/main/resources/icons/app-icon.icns" \
-  --app-version "1.2.0" \
+  --app-version "$APP_VERSION" \
   --vendor "Scylla"
 
 release_dir="../../phonemic/macos-release"
 mkdir -p "$release_dir"
-cp dist/PhoneMic-Desktop-1.2.0.dmg "$release_dir/PhoneMic-Desktop-macos.dmg"
+cp dist/PhoneMic-Desktop-$APP_VERSION.dmg "$release_dir/PhoneMic-Desktop-macos.dmg"
 
 echo "Done. Published to $release_dir/PhoneMic-Desktop-macos.dmg"

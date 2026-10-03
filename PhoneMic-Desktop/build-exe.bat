@@ -1,5 +1,6 @@
 @echo off
 setlocal
+if not defined APP_VERSION set "APP_VERSION=0.2.0"
 
 rem Rebuilds PhoneMic-Desktop and packages it as a standalone Windows .exe (with its
 rem own bundled Java runtime), then drops a zip in ..\..\phonemic\windows-release\ for
@@ -24,7 +25,7 @@ if exist "%~dp0dist" rmdir /s /q "%~dp0dist"
   --main-jar "PhoneMic-Desktop.jar" ^
   --main-class "com.scylla.tool.phonemic.pc.MainKt" ^
   --icon "%~dp0src\main\resources\icons\app-icon.ico" ^
-  --app-version "0.2.0" ^
+  --app-version "%APP_VERSION%" ^
   --vendor "Scylla"
 if errorlevel 1 exit /b 1
 
