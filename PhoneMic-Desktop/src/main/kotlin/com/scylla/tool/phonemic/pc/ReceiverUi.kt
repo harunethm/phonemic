@@ -10,12 +10,8 @@ import java.awt.FlowLayout
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.Image
-import java.awt.MenuItem
-import java.awt.PopupMenu
 import java.awt.RenderingHints
-import java.awt.SystemTray
 import java.awt.Toolkit
-import java.awt.TrayIcon
 import java.awt.datatransfer.StringSelection
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -104,8 +100,6 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
 
     private var currentPin = AudioReceiver.generatePin()
     private var receiver: AudioReceiver? = null
-    private var trayIcon: TrayIcon? = null
-    private var firstMinimizeShown = false
 
     init {
         defaultCloseOperation = JFrame.DO_NOTHING_ON_CLOSE
@@ -141,26 +135,10 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
 
         applyIdleStyle()
 
-        setupTray()
         addWindowListener(object : WindowAdapter() {
             override fun windowClosing(e: WindowEvent) {
-                val tray = trayIcon
-                if (tray != null) {
-                    isVisible = false
-                    if (!firstMinimizeShown) {
-                        tray.displayMessage(
-                            "Phone Mic",
-                            "Still running in the background. Use the tray icon to reopen or quit.",
-                            TrayIcon.MessageType.INFO
-                        )
-                        firstMinimizeShown = true
-                    }
-                } else {
-                    // No working tray icon to reopen from - closing the window must
-                    // actually exit, or the app would vanish with no way back in.
-                    receiver?.stop()
-                    exitProcess(0)
-                }
+                receiver?.stop()
+                exitProcess(0)
             }
         })
 
@@ -426,6 +404,8 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
                         pairingLabel.foreground = if (senderAddress != null) Brand.good else Brand.inkFaint
                     }
                 },
+                // Phone stopped streaming: stop here too so it isn't left running by mistake.
+                onRemoteStop = { SwingUtilities.invokeLater { if (receiver != null) onToggle() } },
                 onError = { message ->
                     SwingUtilities.invokeLater {
                         statusPill.setStatus("Error: $message", Brand.critical)
@@ -469,34 +449,6 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
         applyIdleStyle()
     }
 
-    private fun setupTray() {
-        if (!SystemTray.isSupported()) return
-        val popup = PopupMenu()
-        val showItem = MenuItem("Show")
-        showItem.addActionListener { isVisible = true; toFront() }
-        val toggleItem = MenuItem("Start/Stop")
-        toggleItem.addActionListener { onToggle() }
-        val quitItem = MenuItem("Quit")
-        quitItem.addActionListener {
-            receiver?.stop()
-            exitProcess(0)
-        }
-        popup.add(showItem)
-        popup.add(toggleItem)
-        popup.addSeparator()
-        popup.add(quitItem)
-
-        val icon = TrayIcon(createTrayIconImage(), "Phone Mic", popup)
-        icon.isImageAutoSize = true
-        icon.addActionListener { isVisible = true; toFront() }
-        try {
-            SystemTray.getSystemTray().add(icon)
-            trayIcon = icon
-        } catch (_: Exception) {
-            // tray unavailable at runtime despite isSupported() - fall back to normal close/exit
-        }
-    }
-
     /** Sets the window/taskbar icon everywhere, plus the macOS Dock icon when that API is available. */
     private fun applyAppIcon() {
         val icon = try {
@@ -513,30 +465,5 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
                 taskbar.iconImage = icon
             }
         }
-    }
-
-    private fun createTrayIconImage(): Image {
-        // Same brand PNG as the window/dock icon (see applyAppIcon), scaled down - one
-        // source of truth for the logo instead of a second hand-drawn version drifting from it.
-        val loaded = try {
-            javaClass.classLoader.getResourceAsStream("icons/app-icon-32.png")?.use {
-                javax.imageio.ImageIO.read(it)
-            }
-        } catch (_: Exception) {
-            null
-        }
-        if (loaded != null) return loaded
-
-        val size = 16
-        val image = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
-        val g: Graphics2D = image.createGraphics()
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-        g.color = Color(0x2F, 0x9E, 0x8F)
-        g.fillOval(1, 1, size - 2, size - 2)
-        g.color = Color.WHITE
-        g.fillRoundRect(size / 2 - 2, 3, 4, 7, 3, 3)
-        g.drawLine(size / 2, 10, size / 2, 12)
-        g.dispose()
-        return image
     }
 }

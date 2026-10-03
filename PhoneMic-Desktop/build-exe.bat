@@ -24,7 +24,7 @@ if exist "%~dp0dist" rmdir /s /q "%~dp0dist"
   --main-jar "PhoneMic-Desktop.jar" ^
   --main-class "com.scylla.tool.phonemic.pc.MainKt" ^
   --icon "%~dp0src\main\resources\icons\app-icon.ico" ^
-  --app-version "0.1.1" ^
+  --app-version "0.2.0" ^
   --vendor "Scylla"
 if errorlevel 1 exit /b 1
 

@@ -57,6 +57,7 @@ class MicStreamService : Service() {
         const val TYPE_HELLO_ACK: Byte = 0x02  // PC -> phone: [type]
         const val TYPE_AUDIO: Byte = 0x03      // phone -> PC: [type][seq BE32][pcm16 le]
         const val TYPE_QUALITY: Byte = 0x04    // PC -> phone: [type][lossPercent 0-100]
+        const val TYPE_BYE: Byte = 0x05        // phone -> PC: [type]
     }
 
     companion object {
@@ -360,6 +361,11 @@ class MicStreamService : Service() {
         } catch (_: Exception) {
         }
         record.release()
+        // Tell the PC we're done so it goes back to "not paired"; best-effort, UDP.
+        try {
+            udpSocket.send(DatagramPacket(byteArrayOf(Protocol.TYPE_BYE), 1, address, port))
+        } catch (_: Exception) {
+        }
         udpSocket.close()
     }
 

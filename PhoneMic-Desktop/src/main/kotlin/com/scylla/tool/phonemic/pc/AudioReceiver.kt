@@ -24,6 +24,7 @@ import javax.sound.sampled.SourceDataLine
  *   HELLO_ACK  (PC -> phone): [0x02]
  *   AUDIO      (phone -> PC): [0x03][seq BE32][pcm16 le]
  *   QUALITY    (PC -> phone): [0x04][lossPercent 0-100]
+ *   BYE        (phone -> PC): [0x05]  (phone stopped streaming)
  */
 class AudioReceiver(
     private val port: Int,
@@ -31,7 +32,8 @@ class AudioReceiver(
     initialPin: String,
     private val onStats: (received: Long, lost: Long, level: Float) -> Unit,
     private val onPaired: (senderAddress: String?) -> Unit,
-    private val onError: (String) -> Unit
+    private val onError: (String) -> Unit,
+    private val onRemoteStop: () -> Unit
 ) {
     companion object {
         // Must match the Android app's hardcoded capture format exactly.
@@ -45,6 +47,7 @@ class AudioReceiver(
         private const val TYPE_HELLO_ACK: Byte = 0x02
         private const val TYPE_AUDIO: Byte = 0x03
         private const val TYPE_QUALITY: Byte = 0x04
+        private const val TYPE_BYE: Byte = 0x05
 
         /** Random pairing code shown as the QR payload's third field and the numeric fallback. */
         fun generatePin(): String {
@@ -203,6 +206,9 @@ class AudioReceiver(
                     val receivedPin = String(buffer, 2, pinLen, StandardCharsets.UTF_8)
                     if (receivedPin == pin) {
                         authorizedAddress = senderAddress
+                        // New phone session restarts seq at 0; drop old ordering state or every packet looks "late".
+                        nextPlaySeq = null
+                        pending.clear()
                         onPaired(senderAddress.address.hostAddress)
                         val ack = byteArrayOf(TYPE_HELLO_ACK)
                         try {
@@ -229,6 +235,15 @@ class AudioReceiver(
                     received++
                     windowReceived++
                     drain()
+                }
+                TYPE_BYE -> {
+                    if (authorizedAddress == senderAddress) {
+                        authorizedAddress = null
+                        nextPlaySeq = null
+                        pending.clear()
+                        onPaired(null)
+                        onRemoteStop()
+                    }
                 }
                 else -> { /* unknown control packet, ignore */ }
             }
