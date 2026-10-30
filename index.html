@@ -52,6 +52,7 @@
   .brand svg{width:28px; height:28px;}
   .nav-links{display:flex; align-items:center; gap:24px; font-size:0.92rem; color:var(--ink-muted);}
   .nav-links a:hover{color:var(--ink);}
+  @media (max-width:640px){.nav-links a:not(.btn){display:none;}}
   .btn{
     display:inline-flex; align-items:center; gap:8px; font-family:var(--font-body); font-weight:600;
     font-size:0.94rem; padding:11px 20px; border-radius:999px; text-decoration:none; border:1px solid transparent;
@@ -116,6 +117,27 @@
   .step .num{font-family:var(--font-mono); color:var(--accent); font-size:0.85rem;}
   .step h3{font-size:1.1rem; margin-block:10px 8px;}
   .step p{font-size:0.94rem;}
+
+  .shots{
+    display:grid; grid-template-columns:1.45fr 1fr; gap:40px; align-items:center;
+    background:var(--bg-2); border:1px solid var(--edge); border-radius:var(--radius); padding:40px;
+  }
+  @media (max-width:860px){.shots{grid-template-columns:1fr; padding:24px;}}
+  .shots figure{margin:0;}
+  .shots figcaption{
+    margin-top:14px; font-family:var(--font-mono); font-size:0.75rem; color:var(--ink-faint); text-align:center;
+  }
+  .shot-desktop img{
+    width:100%; height:auto; border-radius:10px; border:1px solid var(--edge);
+    box-shadow:0 24px 48px -16px rgba(0,0,0,0.55);
+  }
+  .shot-phones{display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:380px; margin-inline:auto;}
+  .shot-phones img{
+    width:100%; height:auto; border-radius:22px; border:4px solid var(--bg-3);
+    box-shadow:0 24px 48px -16px rgba(0,0,0,0.55);
+  }
+  .shot-phones img:last-child{transform:translateY(24px);}
+  .shot-phones-wrap figcaption{margin-top:38px;}
 
   .cable-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
   @media (max-width:780px){.cable-grid{grid-template-columns:1fr;}}
@@ -190,6 +212,7 @@
     </div>
     <div class="nav-links">
       <a href="#how-it-works">How it works</a>
+      <a href="#screenshots">Screenshots</a>
       <a href="#features">Features</a>
       <a href="#download">Download</a>
       <a class="btn btn-ghost btn-sm" href="https://github.com/harunethm/phonemic" target="_blank" rel="noopener">GitHub</a>
@@ -256,6 +279,31 @@
         <h3>Go live</h3>
         <p>Tap Start. The desktop app plays your phone's mic into a virtual audio cable, so Discord, your game, or any app sees it as a real microphone.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="screenshots" style="padding-top:0;">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Screenshots</span>
+      <h2>See it running.</h2>
+    </div>
+    <div class="shots">
+      <figure class="shot-desktop">
+        <img src="assets/screenshots/desktop-streaming.png" width="722" height="532" loading="lazy"
+             alt="Desktop receiver showing the pairing QR code, CABLE Input selected as output, and status Excellent while paired with the phone">
+        <figcaption>Desktop receiver · paired and receiving</figcaption>
+      </figure>
+      <figure class="shot-phones-wrap">
+        <div class="shot-phones">
+          <img src="assets/screenshots/android-idle.png" width="540" height="1120" loading="lazy"
+               alt="Phone Mic on Android, paired to the desktop with the Distant voice scenario selected">
+          <img src="assets/screenshots/android-streaming.png" width="540" height="1120" loading="lazy"
+               alt="Phone Mic on Android while streaming, connection quality Excellent">
+        </div>
+        <figcaption>Android app · ready, then streaming</figcaption>
+      </figure>
     </div>
   </div>
 </section>
