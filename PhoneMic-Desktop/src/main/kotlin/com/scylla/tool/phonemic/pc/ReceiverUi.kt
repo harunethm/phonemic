@@ -142,7 +142,10 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
             }
         })
 
-        setSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        // Size the content area, not the frame - setSize() includes the title bar, which
+        // clipped the bottom status line on Windows.
+        contentPane.preferredSize = Dimension(WINDOW_WIDTH, WINDOW_HEIGHT)
+        pack()
         // Fixed at the initial size instead of a min/max range - the two-column layout
         // doesn't have a resize story yet, so just don't offer resizing at all.
         isResizable = false
