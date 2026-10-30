@@ -6,6 +6,18 @@ cloud, no account, everything stays on your WiFi network.
 
 **[Website + downloads](https://harunethm.github.io/phonemic/)** · **[Releases](https://github.com/harunethm/phonemic/releases)**
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/screenshots/android-idle.png" alt="Phone Mic on Android, paired and ready to stream" width="240">
+  &nbsp;
+  <img src="assets/screenshots/android-streaming.png" alt="Phone Mic on Android while streaming, connection Excellent" width="240">
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/desktop-streaming.png" alt="Desktop receiver paired with the phone and receiving audio" width="600">
+</p>
+
 ## What's here
 
 - [`PhoneMic-Android/`](PhoneMic-Android) — the phone app (Kotlin/Compose).
