@@ -50,8 +50,8 @@ Before pairing, install a virtual audio cable on the desktop side — see the
 
 **Camera (optional):** turn on **Send camera** before starting, pick **Back** or
 **Front** and **720p** or **1080p**, and grant the camera permission when asked. The
-desktop shows a live preview and, with OBS Studio installed, feeds it to the
-"OBS Virtual Camera" webcam. While streaming, **Flip camera** switches cameras. If the
+desktop shows a live preview and turns it into a webcam: "Phone Mic Camera" on Windows 11,
+or "OBS Virtual Camera" with OBS Studio installed (Windows 10, macOS). While streaming, **Flip camera** switches cameras. If the
 camera permission is denied, the mic still streams on its own.
 
 Re-pair later with **Re-pair with a PC** on the phone, or click **New code** on the

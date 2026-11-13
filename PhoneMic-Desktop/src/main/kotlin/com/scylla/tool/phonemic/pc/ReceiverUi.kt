@@ -116,6 +116,8 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
     private val mirrorButton = IconTextButton(IconFont.MIRROR, "Mirror", Brand.inkMuted)
     private val rotateButton = IconTextButton(IconFont.ROTATE, "Rotate", Brand.inkMuted)
     private val popOutButton = IconTextButton(IconFont.POP_OUT, "Pop out", Brand.inkMuted)
+    // Windows 11 only, while Phone Mic Camera isn't installed (or is from an older build).
+    private val installWebcamButton = IconTextButton(IconFont.INSTALL, "Install webcam", Brand.accent)
     private var popOutWindow: JFrame? = null
     private var popOutPanel: VideoPreviewPanel? = null
     private val pendingPreview = AtomicReference<BufferedImage?>(null)
@@ -171,6 +173,8 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
             cameraPipeline?.userQuarterTurns = turns
         }
         popOutButton.addActionListener { openPopOut() }
+        installWebcamButton.addActionListener { installWebcam() }
+        refreshWebcamInstallButton()
 
         applyIdleStyle()
         setCameraStatus("Off", CameraPipeline.Tone.MUTED)
@@ -335,6 +339,8 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
         cameraButtons.add(rotateButton)
         cameraButtons.add(Box.createHorizontalStrut(10))
         cameraButtons.add(popOutButton)
+        cameraButtons.add(Box.createHorizontalStrut(10))
+        cameraButtons.add(installWebcamButton)
         cameraButtons.maximumSize = Dimension(Int.MAX_VALUE, cameraButtons.preferredSize.height)
 
         val cameraBlock = JPanel()
@@ -535,7 +541,7 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
         pipeline.mirror = PcPrefs.getCameraMirror()
         pipeline.userQuarterTurns = PcPrefs.getCameraRotate()
         cameraPipeline = pipeline
-        pipeline.waiting()
+        pipeline.start()
         videoReceiver = VideoReceiver(
             port = port,
             pinProvider = { currentPin },
@@ -599,6 +605,31 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
             CameraPipeline.Tone.WARN -> Brand.warn
             CameraPipeline.Tone.ERROR -> Brand.critical
         }
+    }
+
+    private fun refreshWebcamInstallButton() {
+        val state = try { MfVirtualCamera.installState() } catch (_: Throwable) { MfVirtualCamera.InstallState.UNSUPPORTED }
+        installWebcamButton.isVisible = state == MfVirtualCamera.InstallState.NOT_INSTALLED ||
+            state == MfVirtualCamera.InstallState.OUTDATED
+        installWebcamButton.isEnabled = true
+        installWebcamButton.text = if (state == MfVirtualCamera.InstallState.OUTDATED) "Update webcam" else "Install webcam"
+    }
+
+    /** One UAC prompt; afterwards "Phone Mic Camera" shows up in every camera app on Windows 11. */
+    private fun installWebcam() {
+        installWebcamButton.isEnabled = false
+        installWebcamButton.text = "Installing…"
+        Thread({
+            val error = MfVirtualCamera.install()
+            SwingUtilities.invokeLater {
+                refreshWebcamInstallButton()
+                when {
+                    error != null -> setCameraStatus(error, CameraPipeline.Tone.WARN)
+                    cameraPipeline != null -> cameraPipeline?.let { pipeline -> Thread({ pipeline.retryNow() }, "camera-retry").start() }
+                    else -> setCameraStatus("Phone Mic Camera installed. Start the receiver to use it", CameraPipeline.Tone.GOOD)
+                }
+            }
+        }, "webcam-install").apply { isDaemon = true }.start()
     }
 
     /** Resizable camera-only window: for OBS window capture, or when no virtual camera is installed. */

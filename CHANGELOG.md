@@ -2,6 +2,15 @@
 
 Releases are tagged per platform (`windows-vX.Y.Z`, `macos-vX.Y.Z`, `android-vX.Y.Z`); `<platform>-latest` always points at the newest build. Versions move together across platforms.
 
+## 0.4.0
+
+### Desktop
+- Windows 11: a built-in "Phone Mic Camera" webcam, no OBS needed. Click **Install webcam** in the Camera section once (one admin prompt) and pick it in the Windows Camera app, your browser, or apps like Discord and Zoom. `--install-webcam` / `--uninstall-webcam` do the same from the command line.
+- The phone's video now goes to every available webcam at once (Phone Mic Camera and OBS Virtual Camera).
+
+### Android
+- No changes; the 0.3.0 app (with **Send camera**) works with this release.
+
 ## 0.3.0
 
 ### Android

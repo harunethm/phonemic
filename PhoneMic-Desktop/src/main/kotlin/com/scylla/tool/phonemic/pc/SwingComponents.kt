@@ -36,6 +36,7 @@ object IconFont {
     const val ROTATE = "" // rotate-cw
     const val MIRROR = "" // flip-horizontal-2
     const val POP_OUT = "" // external-link
+    const val INSTALL = "" // download
 
     val font: Font? by lazy {
         try {

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Phone Mic — turn your phone into a wireless desktop mic</title>
-<meta name="description" content="Stream your phone's microphone to your Windows or macOS desktop over WiFi. Scan a QR code, pick a capture scenario, done. No cloud, no account, no cables.">
+<title>Phone Mic — turn your phone into a wireless desktop mic and webcam</title>
+<meta name="description" content="Stream your phone's microphone and camera to your Windows or macOS desktop over WiFi. A real mic for Discord and games, a real webcam for calls. Scan a QR code, done. No cloud, no account, no cables.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F2229'/%3E%3Cpath d='M16 6a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0v-6a4 4 0 0 1 4-4Z' fill='%23F2A34D'/%3E%3Cpath d='M9 16a7 7 0 0 0 14 0M16 23v3' stroke='%2359C7B0' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -213,6 +213,7 @@
     <div class="nav-links">
       <a href="#how-it-works">How it works</a>
       <a href="#screenshots">Screenshots</a>
+      <a href="#webcam">Webcam</a>
       <a href="#features">Features</a>
       <a href="#download">Download</a>
       <a class="btn btn-ghost btn-sm" href="https://github.com/harunethm/phonemic" target="_blank" rel="noopener">GitHub</a>
@@ -225,7 +226,7 @@
     <div>
       <span class="eyebrow">Free · Open source · Works over your own WiFi</span>
       <h1>Your mic died.<br>Your phone <span class="hl">didn't.</span></h1>
-      <p class="lede">Phone Mic turns any Android phone into a low-latency wireless microphone for your Windows or macOS desktop. Scan a QR code, pick a capture scenario, and you're live in your game or Discord call — no cables, no cloud account, no subscription. Want video too? It doubles as a webcam.</p>
+      <p class="lede">Phone Mic turns any Android phone into a low-latency wireless microphone — and webcam — for your Windows or macOS desktop. Scan a QR code, pick a capture scenario, and you're live in your game or Discord call — no cables, no cloud account, no subscription.</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="#download">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
@@ -233,7 +234,7 @@
         </a>
         <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
       </div>
-      <div class="hero-note">v0.3.0 ·Windows 10/11 / macOS · Android 7.0+</div>
+      <div class="hero-note">v0.4.0 · Windows 10/11 / macOS · Android 7.0+</div>
     </div>
 
     <div class="diagram">
@@ -245,7 +246,7 @@
       </div>
       <div class="link">
         <div class="waves"><i></i><i></i><i></i><i></i><i></i></div>
-        <small>WiFi · UDP · ~10ms frames</small>
+        <small>WiFi · audio + video</small>
       </div>
       <div class="node">
         <div class="icon-box">
@@ -308,6 +309,35 @@
   </div>
 </section>
 
+<section id="webcam" style="padding-top:0;">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">New · Webcam</span>
+      <h2>Your phone's camera, as a real webcam.</h2>
+      <p style="margin-top:10px;">The phone's back or front camera streams right next to the mic, in 720p or 1080p,
+      hardware-encoded so it stays light on your WiFi. The desktop app previews it and turns it into
+      a webcam for video calls, streams and recordings.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">01</div>
+        <h3>Turn on Send camera</h3>
+        <p>Pick back or front and 720p or 1080p in the phone app, then start streaming as usual. Flip cameras any time while you're live.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h3>Check the preview</h3>
+        <p>The desktop app swaps its QR code for a live preview. Mirror it, rotate it, or pop it out into its own resizable window.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h3>Pick Phone Mic Camera</h3>
+        <p>On Windows 11, click <b>Install webcam</b> once, then choose <b>Phone Mic Camera</b> in the Camera app, your browser, or apps like Discord and Zoom. Windows 10 and macOS use OBS's virtual camera — <a href="#virtual-camera" style="color:var(--accent-2); text-decoration:underline;">see setup</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="features">
   <div class="wrap">
     <div class="section-head">
@@ -348,7 +378,7 @@
       <div class="feature" style="grid-column:1/-1;">
         <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
         <h3>Camera too</h3>
-        <p>Flip on "Send camera" and the phone's back or front camera becomes a webcam on your desktop, in 720p or 1080p. Preview, mirror and rotate it from the desktop app.</p>
+        <p>Flip on "Send camera" and the phone's back or front camera becomes a webcam on your desktop, in 720p or 1080p. On Windows 11 it's a built-in "Phone Mic Camera" that every app sees, no OBS needed. Preview, mirror and rotate it from the desktop app.</p>
       </div>
     </div>
   </div>
@@ -445,18 +475,21 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Optional</span>
-      <h2>Want the webcam too? Install OBS Studio.</h2>
-      <p style="margin-top:10px;">The phone's camera always shows up as a live preview in the desktop app. To use it
-      as a webcam in Discord, Zoom or your browser, Phone Mic feeds it into OBS Studio's built-in
-      virtual camera. Free, and OBS doesn't even need to be running.</p>
+      <h2>Want the webcam too?</h2>
+      <p style="margin-top:10px;">The phone's camera always shows up as a live preview in the desktop app. On
+      <b>Windows 11</b> it becomes a real webcam with one click: press <b>Install webcam</b> in the
+      desktop app's Camera section, accept the admin prompt, and pick <b>Phone Mic Camera</b> in the
+      Windows Camera app, your browser, or apps like Discord and Zoom. No OBS needed.</p>
+      <p style="margin-top:10px;">On Windows 10 and macOS, Phone Mic feeds OBS Studio's built-in virtual camera
+      instead. Free, and OBS doesn't even need to be running.</p>
     </div>
     <div class="cable-grid">
       <div class="cable-card">
         <div class="cable-head">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
-          <h3>Windows — OBS Studio</h3>
+          <h3>Windows 10 — OBS Studio</h3>
         </div>
-        <p>Installing OBS registers the "OBS Virtual Camera" device. That's all the setup there is.</p>
+        <p>Windows 11? Skip this, use <b>Install webcam</b> instead. Installing OBS registers the "OBS Virtual Camera" device.</p>
         <div class="cable-code">
           <code>Then pick: "OBS Virtual Camera"</code>
           <button class="copy-btn" type="button" data-copy-target="prompt-obs-windows" aria-label="Copy AI agent prompt">
@@ -505,6 +538,7 @@
     <div class="download-group">
       <h3>Desktop receiver</h3>
       <p style="max-width:46ch; margin:8px auto 0;">Requires a virtual audio cable app on the desktop side so the stream shows up as a real microphone — <a href="#virtual-cable" style="color:var(--accent-2); text-decoration:underline;">VB-Audio Virtual Cable</a> (Windows) or <a href="#virtual-cable" style="color:var(--accent-2); text-decoration:underline;">BlackHole</a> (macOS), both free — see setup instructions above.</p>
+      <p style="max-width:46ch; margin:8px auto 0;">Webcam: built in on Windows 11 (one click in the app); Windows 10 and macOS use <a href="#virtual-camera" style="color:var(--accent-2); text-decoration:underline;">OBS's virtual camera</a>.</p>
       <div class="cta-row" style="justify-content:center; margin-top:16px;">
         <a class="btn btn-primary" href="https://github.com/harunethm/phonemic/releases/download/windows-latest/PhoneMic-Desktop-windows.zip" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>

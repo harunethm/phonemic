@@ -15,6 +15,12 @@ fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         "--video-selftest" -> exitProcess(SelfTest.runVideoSelfTest())
         "--vcam-test" -> exitProcess(SelfTest.runVirtualCameraTest())
+        "--install-webcam" -> exitProcess(
+            MfVirtualCamera.install()?.let { println(it); 1 } ?: run { println("Phone Mic Camera installed"); 0 }
+        )
+        "--uninstall-webcam" -> exitProcess(
+            MfVirtualCamera.uninstall()?.let { println(it); 1 } ?: run { println("Phone Mic Camera removed"); 0 }
+        )
     }
     val lock = try {
         ServerSocket(SINGLE_INSTANCE_PORT, 1, InetAddress.getLoopbackAddress())

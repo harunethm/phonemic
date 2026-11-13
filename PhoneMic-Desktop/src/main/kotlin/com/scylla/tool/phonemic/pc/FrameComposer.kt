@@ -52,33 +52,38 @@ class FrameComposer(firstWidth: Int, firstHeight: Int) {
         return canvas
     }
 
-    /** BT.601 limited-range RGB -> NV12 (Y plane, then interleaved U,V at half resolution). */
-    fun toNv12(canvas: BufferedImage, out: ByteArray) {
-        val pixels = (canvas.raster.dataBuffer as DataBufferInt).data
-        val w = width
-        val h = height
-        var uv = w * h
-        for (y in 0 until h) {
-            val row = y * w
-            for (x in 0 until w) {
+    fun toNv12(canvas: BufferedImage, out: ByteArray) = rgbToNv12(canvas, out)
+}
+
+/**
+ * BT.601 limited-range RGB -> NV12 (Y plane, then interleaved U,V at half resolution).
+ * [image] must be TYPE_INT_RGB with even dimensions; [out] holds width*height*3/2 bytes.
+ */
+fun rgbToNv12(image: BufferedImage, out: ByteArray) {
+    val pixels = (image.raster.dataBuffer as DataBufferInt).data
+    val w = image.width
+    val h = image.height
+    var uv = w * h
+    for (y in 0 until h) {
+        val row = y * w
+        for (x in 0 until w) {
+            val p = pixels[row + x]
+            val r = (p shr 16) and 0xFF
+            val g = (p shr 8) and 0xFF
+            val b = p and 0xFF
+            out[row + x] = (((66 * r + 129 * g + 25 * b + 128) shr 8) + 16).toByte()
+        }
+        if (y and 1 == 0) {
+            var x = 0
+            while (x < w) {
+                // Chroma from the top-left pixel of each 2x2 block - cheap and fine for video.
                 val p = pixels[row + x]
                 val r = (p shr 16) and 0xFF
                 val g = (p shr 8) and 0xFF
                 val b = p and 0xFF
-                out[row + x] = (((66 * r + 129 * g + 25 * b + 128) shr 8) + 16).toByte()
-            }
-            if (y and 1 == 0) {
-                var x = 0
-                while (x < w) {
-                    // Chroma from the top-left pixel of each 2x2 block - cheap and fine for video.
-                    val p = pixels[row + x]
-                    val r = (p shr 16) and 0xFF
-                    val g = (p shr 8) and 0xFF
-                    val b = p and 0xFF
-                    out[uv++] = (((-38 * r - 74 * g + 112 * b + 128) shr 8) + 128).toByte()
-                    out[uv++] = (((112 * r - 94 * g - 18 * b + 128) shr 8) + 128).toByte()
-                    x += 2
-                }
+                out[uv++] = (((-38 * r - 74 * g + 112 * b + 128) shr 8) + 128).toByte()
+                out[uv++] = (((112 * r - 94 * g - 18 * b + 128) shr 8) + 128).toByte()
+                x += 2
             }
         }
     }

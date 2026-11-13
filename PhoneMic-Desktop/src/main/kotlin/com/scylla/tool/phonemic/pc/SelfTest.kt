@@ -168,45 +168,73 @@ object SelfTest {
         return out.takeIf { it.size >= FRAMES * 9 / 10 && it.first().second }
     }
 
+    /**
+     * Feeds every available virtual camera for 60 s: plain white for the first 8 s, then moving
+     * colour bars to look at in any camera app. Phone Mic Camera is also read back through
+     * Media Foundation like a real app would; PASS = 1280x720 frames that are our white, not
+     * the placeholder. Exit code 0 = everything opened (and the read-back passed).
+     */
     fun runVirtualCameraTest(): Int {
-        val camera = VirtualCameras.create()
-        if (camera == null) {
-            println("No virtual camera available. Install OBS Studio (macOS: 30+, plus the phonemic-vcam helper).")
+        val cameras = VirtualCameras.createAll()
+        if (cameras.isEmpty()) {
+            println("No virtual camera available. Windows 11: build phonemic-vcam.dll. Otherwise install OBS Studio.")
             return 1
         }
-        val composer = FrameComposer(1280, 720)
-        val error = camera.open(composer.width, composer.height, 30)
-        if (error != null) {
-            println("Could not open ${camera.label}: $error")
-            return 1
+        var ok = true
+        val opened = cameras.filter { camera ->
+            val size = camera.fixedSize ?: java.awt.Dimension(1280, 720)
+            val error = camera.open(size.width, size.height, 30)
+            println(if (error == null) "Opened ${camera.label} at ${size.width}x${size.height}" else "Could not open ${camera.label}: $error")
+            if (error != null) ok = false
+            error == null
         }
-        println("Opened ${camera.label} at ${composer.width}x${composer.height}. Showing colour bars for 60 s...")
+        if (opened.isEmpty()) return 1
+
+        val width = 1280
+        val height = 720
+        val source = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+        val nv12 = ByteArray(width * height * 3 / 2)
         val bars = arrayOf(Color.WHITE, Color.YELLOW, Color.CYAN, Color.GREEN, Color.MAGENTA, Color.RED, Color.BLUE)
-        val source = BufferedImage(composer.width, composer.height, BufferedImage.TYPE_INT_RGB)
-        val nv12 = ByteArray(composer.width * composer.height * 3 / 2)
         val start = System.currentTimeMillis()
-        try {
+        val writer = Thread {
             var frame = 0
             while (System.currentTimeMillis() - start < 60_000) {
                 val g = source.createGraphics()
-                val barWidth = composer.width / bars.size
-                bars.forEachIndexed { i, color ->
-                    g.color = color
-                    g.fillRect(((i * barWidth + frame * 4) % composer.width), 0, barWidth, composer.height)
+                if (System.currentTimeMillis() - start < 8_000) {
+                    g.color = Color.WHITE
+                    g.fillRect(0, 0, width, height)
+                } else {
+                    val barWidth = width / bars.size
+                    bars.forEachIndexed { i, color ->
+                        g.color = color
+                        g.fillRect(((i * barWidth + frame * 4) % width), 0, barWidth, height)
+                    }
+                    g.color = Color.BLACK
+                    g.font = Font(Font.SANS_SERIF, Font.BOLD, 48)
+                    g.drawString("Phone Mic camera test  ${frame / 30}s", 40, height - 40)
                 }
-                g.color = Color.BLACK
-                g.font = Font(Font.SANS_SERIF, Font.BOLD, 48)
-                g.drawString("Phone Mic camera test  ${frame / 30}s", 40, composer.height - 40)
                 g.dispose()
-                composer.toNv12(composer.compose(source, 0, false), nv12)
-                camera.write(nv12)
+                rgbToNv12(source, nv12)
+                opened.forEach { camera ->
+                    try { camera.write(nv12) } catch (e: Exception) { println("${camera.label} write failed: ${e.message}") }
+                }
                 frame++
                 Thread.sleep(33)
             }
-        } finally {
-            camera.close()
         }
-        println("Done.")
-        return 0
+        writer.start()
+
+        opened.filterIsInstance<MfVirtualCamera>().forEach { camera ->
+            Thread.sleep(1_000)
+            val result = try { camera.probe(20) } catch (e: Exception) { println("probe error: ${e.cause ?: e}"); null }
+            val pass = result != null && result.first == 1280 && result.second == 720 && result.third > 200
+            println("Read back ${camera.label}: ${result?.let { "${it.first}x${it.second}, average luma ${it.third} (white ≈ 235, placeholder 41)" } ?: "nothing"} -> ${if (pass) "PASS" else "FAIL"}")
+            if (!pass) ok = false
+        }
+        println("Colour bars until 60 s - check any camera app now...")
+        writer.join()
+        opened.forEach { it.close() }
+        println(if (ok) "PASS" else "FAIL")
+        return if (ok) 0 else 1
     }
 }

@@ -17,16 +17,18 @@ somewhere to appear as a microphone:
 - **Windows**: [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) (free)
 - **macOS**: [BlackHole](https://existential.audio/blackhole/) (free, `brew install blackhole-2ch`)
 
-Optional, to use the phone's camera as a webcam: [OBS Studio](https://obsproject.com/)
-(free). Phone Mic writes into OBS's built-in virtual camera; OBS itself doesn't need to be
-running.
+To use the phone's camera as a webcam:
 
-- **Windows**: just install OBS. That registers the "OBS Virtual Camera" device.
+- **Windows 11**: nothing to install up front. Click **Install webcam** in the app's Camera
+  section once (one admin prompt). That adds **Phone Mic Camera**, which every app sees:
+  the Windows Camera app, browsers, and apps like Discord and Zoom.
+- **Windows 10**: install [OBS Studio](https://obsproject.com/) (free). Phone Mic writes into
+  OBS's built-in "OBS Virtual Camera"; OBS itself doesn't need to be running.
 - **macOS** (13+, OBS 30+): install OBS, open it once, click **Start Virtual Camera**
   (approve the system extension if asked), then **Stop Virtual Camera** and quit OBS.
 
-Without OBS the camera still works as a live preview inside the app (with a pop-out window
-you can screen-share or capture).
+Without either, the camera still works as a live preview inside the app (with a pop-out
+window you can screen-share or capture).
 
 See the [landing page](https://harunethm.github.io/phonemic/) for step-by-step install
 instructions for either one.
@@ -51,7 +53,10 @@ Run without packaging, straight from this folder:
   set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot"
   build-exe.bat
   ```
-  Output: `dist\PhoneMic-Desktop\PhoneMic-Desktop.exe`
+  Output: `dist\PhoneMic-Desktop\PhoneMic-Desktop.exe`. A local build then also installs it
+  for you (no admin): copied to `%LOCALAPPDATA%\Programs\Phone Mic`, with **Phone Mic**
+  shortcuts on the Desktop and in the Start menu. Skip that with `set NO_INSTALL=1`; remove
+  it with `powershell -File install-local.ps1 -Uninstall`. CI only builds.
 
 - **macOS** (`build-dmg.sh`): same idea, packages a `.dmg`.
   ```
@@ -85,17 +90,32 @@ Run without packaging, straight from this folder:
 
 With **Send camera** on in the phone app, the QR panel turns into a live preview once the
 video connects (click it, or **Pop out**, for a resizable window). The **Camera** line says
-where the video goes: `→ OBS Virtual Camera` when OBS is installed, otherwise
-`preview only`. Pick **OBS Virtual Camera** as the camera in Discord, Zoom or your browser.
+where the video goes, e.g. `→ Phone Mic Camera + OBS Virtual Camera`, or `preview only`.
 **Mirror** flips it horizontally, **Rotate** adds a quarter turn (both are remembered). If
 it says the virtual camera is busy, OBS's own **Start Virtual Camera** is on; stop it.
 
-Developer checks (no phone needed):
+### Phone Mic Camera (Windows 11)
+
+A real webcam built on Windows 11's virtual camera API (`native/windows/phonemic-vcam.cpp`),
+so no OBS is needed. Apps list it as **Phone Mic Camera (Windows Virtual Camera)**. It exists
+while the receiver runs and shows a plain placeholder until the phone's video arrives. Always
+1280×720 at 30 fps; other phone resolutions are scaled to fit.
+
+- **Install / update**: the **Install webcam** (or **Update webcam**) button, or
+  `PhoneMic-Desktop.exe --install-webcam`. One admin prompt: the DLL is copied to
+  `C:\Program Files\Phone Mic\` and registered for the whole machine, because Windows' camera
+  service (not the app) loads it.
+- **Remove**: `PhoneMic-Desktop.exe --uninstall-webcam` (one admin prompt).
+- Frames reach the camera service over a loopback-only TCP port, 47654.
+
+### Developer checks (no phone needed)
 
 ```
 ./gradlew run --args="--video-selftest"   # encode, stream over loopback TCP, decode: prints PASS/FAIL
-./gradlew run --args="--vcam-test"        # 60 s of colour bars on the virtual camera
+./gradlew run --args="--vcam-test"        # every virtual camera for 60 s; reads Phone Mic Camera back: PASS/FAIL
 ```
 
-On macOS, `./gradlew run` needs the helper built first (`build-dmg.sh` does it) and
-`PHONEMIC_VCAM_HELPER=/path/to/phonemic-vcam` set.
+`--vcam-test` needs the webcam installed. Building the DLL needs Visual Studio Build Tools
+with C++ (`native\windows\build-vcam.bat`); `build-exe.bat` does it automatically. From
+source, set `PHONEMIC_VCAM_DLL=path\to\phonemic-vcam.dll`. On macOS, `./gradlew run` needs
+the helper built first (`build-dmg.sh` does it) and `PHONEMIC_VCAM_HELPER=/path/to/phonemic-vcam` set.

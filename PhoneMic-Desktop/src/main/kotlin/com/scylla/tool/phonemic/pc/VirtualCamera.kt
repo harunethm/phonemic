@@ -1,11 +1,20 @@
 package com.scylla.tool.phonemic.pc
 
+import java.awt.Dimension
+
 /**
- * A system webcam we can push frames into. Like the audio side (VB-Cable / BlackHole), the
- * driver itself is someone else's already-signed one - here OBS Studio's virtual camera.
+ * A system webcam we can push frames into: our own Windows 11 "Phone Mic Camera", or OBS
+ * Studio's already-signed virtual camera (Windows 10 and apps that only list DirectShow
+ * cameras, plus macOS).
  */
 interface VirtualCamera {
     val label: String
+
+    /** The size this camera always runs at, or null to use the phone's canvas size. */
+    val fixedSize: Dimension? get() = null
+
+    /** Stay open while no phone video flows (apps keep it selected) instead of closing on disconnect. */
+    val keepOpenWhileIdle: Boolean get() = false
 
     /** Starts the camera at a fixed size; returns an error message, or null on success. */
     fun open(width: Int, height: Int, fps: Int): String?
@@ -19,17 +28,20 @@ interface VirtualCamera {
 object VirtualCameras {
     const val BUSY = "Virtual camera busy. Stop OBS's own virtual camera"
 
-    /** The virtual camera for this OS, or null when OBS (or our macOS helper) isn't available. */
-    fun create(): VirtualCamera? {
+    /** Every virtual camera this machine can feed; the phone's video goes to all of them at once. */
+    fun createAll(): List<VirtualCamera> {
         val os = System.getProperty("os.name").lowercase()
-        return try {
-            when {
-                os.contains("win") -> if (ObsWindowsCamera.isInstalled()) ObsWindowsCamera() else null
-                os.contains("mac") -> ObsMacCamera.locateHelper()?.let { ObsMacCamera(it) }
-                else -> null
+        val cameras = ArrayList<VirtualCamera>()
+        try {
+            if (os.contains("win")) {
+                if (MfVirtualCamera.installState() != MfVirtualCamera.InstallState.UNSUPPORTED) cameras += MfVirtualCamera()
+                if (ObsWindowsCamera.isInstalled()) cameras += ObsWindowsCamera()
+            } else if (os.contains("mac")) {
+                ObsMacCamera.locateHelper()?.let { cameras += ObsMacCamera(it) }
             }
         } catch (_: Throwable) {
-            null
+            // a broken optional output must never take the preview down with it
         }
+        return cameras
     }
 }

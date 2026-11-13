@@ -4,7 +4,7 @@
 # publishing via release.sh.
 
 # jpackage on macOS rejects a 0.x major, so release 0.X.Y ships as app-version 1.X.Y.
-APP_VERSION="${APP_VERSION:-1.3.0}"
+APP_VERSION="${APP_VERSION:-1.4.0}"
 set -euo pipefail
 cd "$(dirname "$0")"
 
