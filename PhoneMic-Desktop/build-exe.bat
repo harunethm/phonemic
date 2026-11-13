@@ -1,6 +1,6 @@
 @echo off
 setlocal
-if not defined APP_VERSION set "APP_VERSION=0.2.0"
+if not defined APP_VERSION set "APP_VERSION=0.3.0"
 
 rem Rebuilds PhoneMic-Desktop and packages it as a standalone Windows .exe (with its
 rem own bundled Java runtime), then drops a zip in ..\..\phonemic\windows-release\ for

@@ -33,6 +33,9 @@ object IconFont {
     const val COPY = ""
     const val REFRESH = ""
     const val GLOBE = ""
+    const val ROTATE = "" // rotate-cw
+    const val MIRROR = "" // flip-horizontal-2
+    const val POP_OUT = "" // external-link
 
     val font: Font? by lazy {
         try {
@@ -171,7 +174,15 @@ class CircleIconButton(private val glyph: String, private val filled: Boolean = 
 }
 
 /** Flat icon+label button (e.g. "Copy" next to the IP row) - built on Swing's native icon/text layout. */
-class IconTextButton(glyph: String, text: String, private val tintColor: Color) : JButton(text) {
+class IconTextButton(private val glyph: String, text: String, tintColor: Color) : JButton(text) {
+    /** Text + icon colour; changeable so a button can show an on/off state (e.g. Mirror). */
+    var tintColor: Color = tintColor
+        set(value) {
+            field = value
+            foreground = value
+            icon = LucideIcon(glyph, 13, value)
+        }
+
     init {
         isContentAreaFilled = false
         isFocusPainted = false
@@ -418,6 +429,39 @@ class LevelMeter : JPanel() {
         if (fillW > 0) {
             g2.color = fillColor
             g2.fillRoundRect(0, 0, fillW.coerceAtMost(width), height - 1, height, height)
+        }
+        g2.dispose()
+    }
+}
+
+/**
+ * Paints the latest composed camera frame letterboxed on black, clipped to rounded corners.
+ * Shared by the sidebar preview card and the resizable pop-out window. EDT-only.
+ */
+class VideoPreviewPanel(private val radius: Int = 0) : JPanel() {
+    var image: java.awt.image.BufferedImage? = null
+        set(value) {
+            field = value
+            repaint()
+        }
+
+    init { isOpaque = false }
+
+    override fun paintComponent(g: Graphics) {
+        val g2 = g.create() as Graphics2D
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        val shape = java.awt.geom.RoundRectangle2D.Float(
+            0f, 0f, width.toFloat(), height.toFloat(), radius * 2f, radius * 2f
+        )
+        g2.color = Color.BLACK
+        g2.fill(shape)
+        image?.let { img ->
+            g2.clip(shape)
+            val scale = minOf(width.toDouble() / img.width, height.toDouble() / img.height)
+            val w = (img.width * scale).toInt()
+            val h = (img.height * scale).toInt()
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+            g2.drawImage(img, (width - w) / 2, (height - h) / 2, w, h, null)
         }
         g2.dispose()
     }

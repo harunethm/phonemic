@@ -17,6 +17,17 @@ somewhere to appear as a microphone:
 - **Windows**: [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) (free)
 - **macOS**: [BlackHole](https://existential.audio/blackhole/) (free, `brew install blackhole-2ch`)
 
+Optional, to use the phone's camera as a webcam: [OBS Studio](https://obsproject.com/)
+(free). Phone Mic writes into OBS's built-in virtual camera; OBS itself doesn't need to be
+running.
+
+- **Windows**: just install OBS. That registers the "OBS Virtual Camera" device.
+- **macOS** (13+, OBS 30+): install OBS, open it once, click **Start Virtual Camera**
+  (approve the system extension if asked), then **Stop Virtual Camera** and quit OBS.
+
+Without OBS the camera still works as a live preview inside the app (with a pop-out window
+you can screen-share or capture).
+
 See the [landing page](https://harunethm.github.io/phonemic/) for step-by-step install
 instructions for either one.
 
@@ -66,3 +77,25 @@ Run without packaging, straight from this folder:
   need to agree, so don't change one without the other.
 - Transport is UDP with no retransmission, trading a little robustness for lower
   latency. On a congested WiFi network you may hear brief dropouts rather than delay.
+- Camera video arrives as H.264 over **TCP** on the same port number, so the firewall
+  needs to allow the app for TCP as well as UDP. Decoding uses FFmpeg (LGPL build, bundled
+  via JavaCPP).
+
+## Camera
+
+With **Send camera** on in the phone app, the QR panel turns into a live preview once the
+video connects (click it, or **Pop out**, for a resizable window). The **Camera** line says
+where the video goes: `→ OBS Virtual Camera` when OBS is installed, otherwise
+`preview only`. Pick **OBS Virtual Camera** as the camera in Discord, Zoom or your browser.
+**Mirror** flips it horizontally, **Rotate** adds a quarter turn (both are remembered). If
+it says the virtual camera is busy, OBS's own **Start Virtual Camera** is on; stop it.
+
+Developer checks (no phone needed):
+
+```
+./gradlew run --args="--video-selftest"   # encode, stream over loopback TCP, decode: prints PASS/FAIL
+./gradlew run --args="--vcam-test"        # 60 s of colour bars on the virtual camera
+```
+
+On macOS, `./gradlew run` needs the helper built first (`build-dmg.sh` does it) and
+`PHONEMIC_VCAM_HELPER=/path/to/phonemic-vcam` set.

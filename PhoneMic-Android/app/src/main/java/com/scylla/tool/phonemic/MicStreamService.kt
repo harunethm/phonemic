@@ -23,6 +23,7 @@ import android.os.Process
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -48,7 +49,9 @@ class MicStreamService : Service() {
         val level: Float = 0f, // 0..1 peak amplitude of the most recent chunk(s)
         val paired: Boolean = false,
         val quality: Quality = Quality.UNKNOWN,
-        val error: String? = null
+        val error: String? = null,
+        val cameraInfo: String? = null, // null when the camera isn't being streamed
+        val cameraError: String? = null
     )
 
     /** Wire format shared with PhoneMic-Desktop's AudioReceiver.kt - keep both in sync. */
@@ -63,9 +66,11 @@ class MicStreamService : Service() {
     companion object {
         const val ACTION_START = "com.scylla.tool.phonemic.action.START"
         const val ACTION_STOP = "com.scylla.tool.phonemic.action.STOP"
+        const val ACTION_FLIP_CAMERA = "com.scylla.tool.phonemic.action.FLIP_CAMERA"
         const val EXTRA_HOST = "extra_host"
         const val EXTRA_PORT = "extra_port"
         const val EXTRA_PIN = "extra_pin"
+        const val EXTRA_CAMERA = "extra_camera" // true only when CAMERA permission is granted
 
         private const val CHANNEL_ID = "phone_mic_stream"
         private const val NOTIFICATION_ID = 1
@@ -91,6 +96,7 @@ class MicStreamService : Service() {
     private var noiseSuppressor: NoiseSuppressor? = null
     private var automaticGainControl: AutomaticGainControl? = null
     private var echoCanceler: AcousticEchoCanceler? = null
+    private var cameraStreamer: CameraStreamer? = null
 
     @Volatile private var paired = false
     @Volatile private var quality = Quality.UNKNOWN
@@ -104,14 +110,20 @@ class MicStreamService : Service() {
                 val host = intent.getStringExtra(EXTRA_HOST).orEmpty()
                 val port = intent.getIntExtra(EXTRA_PORT, 0)
                 val pin = intent.getStringExtra(EXTRA_PIN).orEmpty()
-                startStreaming(host, port, pin)
+                startStreaming(host, port, pin, intent.getBooleanExtra(EXTRA_CAMERA, false))
             }
             ACTION_STOP -> stopSelf()
+            ACTION_FLIP_CAMERA -> cameraStreamer?.flip()
         }
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
+        // Camera first: it closes its TCP link, so the desktop drops video before the audio BYE.
+        cameraStreamer?.let {
+            cameraStreamer = null
+            it.stop()
+        }
         running = false
         captureThread?.join(500)
         captureThread = null
@@ -145,8 +157,8 @@ class MicStreamService : Service() {
         echoCanceler = null
     }
 
-    private fun startStreaming(host: String, port: Int, pin: String) {
-        if (running) return
+    private fun startStreaming(host: String, port: Int, pin: String, camera: Boolean) {
+        if (running || cameraStreamer != null) return
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
@@ -157,9 +169,12 @@ class MicStreamService : Service() {
         }
 
         createNotificationChannel()
-        val notification = buildNotification(host, port)
+        val notification = buildNotification(host, port, camera)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+            // The camera type exists from Android 11; before that a foreground service needs no type for it.
+            val types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or
+                (if (camera && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA else 0)
+            startForeground(NOTIFICATION_ID, notification, types)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
@@ -172,6 +187,28 @@ class MicStreamService : Service() {
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             runCaptureLoop(host, port, pin, scenario, noiseReductionEnabled, monitoringEnabled)
         }.also { it.start() }
+
+        if (camera) {
+            lateinit var streamer: CameraStreamer
+            streamer = CameraStreamer(
+                context = this,
+                host = host,
+                port = port,
+                pin = pin,
+                facing = Prefs.getCameraFacing(this),
+                quality = Prefs.getCameraQuality(this),
+                isAudioPaired = { paired },
+                onState = { info, error ->
+                    if (cameraStreamer === streamer) {
+                        status.update {
+                            it.copy(cameraInfo = info ?: it.cameraInfo, cameraError = error)
+                        }
+                    }
+                }
+            )
+            cameraStreamer = streamer
+            streamer.start()
+        }
     }
 
     private fun audioSourceFor(scenario: CaptureScenario): Int = when (scenario) {
@@ -260,7 +297,8 @@ class MicStreamService : Service() {
         paired = false
         quality = Quality.UNKNOWN
         lastQualityAt = 0L
-        status.value = StreamState(isStreaming = true, host = host, port = port)
+        // Keep whatever the camera already reported; it runs on its own threads.
+        status.update { StreamState(isStreaming = true, host = host, port = port, cameraInfo = it.cameraInfo, cameraError = it.cameraError) }
 
         controlThread = Thread { runControlLoop() }.also { it.start() }
 
@@ -315,7 +353,7 @@ class MicStreamService : Service() {
                 // recreate the socket after repeated failures, since a fresh socket rarely
                 // helps a routing-level "network unreachable" on its own.
                 consecutiveSendFailures++
-                status.value = status.value.copy(error = "Send failed, retrying: ${e.message}")
+                status.update { it.copy(error = "Send failed, retrying: ${e.message}") }
                 if (consecutiveSendFailures >= 10) {
                     try { udpSocket.close() } catch (_: Exception) {}
                     try {
@@ -343,19 +381,22 @@ class MicStreamService : Service() {
             }
 
             if (now - lastUiUpdate > 200) {
-                status.value = status.value.copy(
-                    packetsSent = sent,
-                    level = (peakSinceUpdate / 32768f).coerceIn(0f, 1f),
-                    paired = paired,
-                    quality = quality,
-                    error = null
-                )
+                // update{} rather than value = value.copy(): the camera writes to the same state concurrently.
+                status.update {
+                    it.copy(
+                        packetsSent = sent,
+                        level = (peakSinceUpdate / 32768f).coerceIn(0f, 1f),
+                        paired = paired,
+                        quality = quality,
+                        error = null
+                    )
+                }
                 peakSinceUpdate = 0
                 lastUiUpdate = now
             }
         }
 
-        status.value = status.value.copy(packetsSent = sent, isStreaming = false)
+        status.update { it.copy(packetsSent = sent, isStreaming = false) }
         try {
             record.stop()
         } catch (_: Exception) {
@@ -476,14 +517,14 @@ class MicStreamService : Service() {
         }
     }
 
-    private fun buildNotification(host: String, port: Int): Notification {
+    private fun buildNotification(host: String, port: Int, camera: Boolean): Notification {
         val stopIntent = Intent(this, MicStreamService::class.java).setAction(ACTION_STOP)
         val stopPendingIntent = PendingIntent.getService(
             this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_title))
-            .setContentText("Streaming to $host:$port")
+            .setContentText(if (camera) "Streaming mic and camera to $host:$port" else "Streaming to $host:$port")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

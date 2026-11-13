@@ -225,7 +225,7 @@
     <div>
       <span class="eyebrow">Free · Open source · Works over your own WiFi</span>
       <h1>Your mic died.<br>Your phone <span class="hl">didn't.</span></h1>
-      <p class="lede">Phone Mic turns any Android phone into a low-latency wireless microphone for your Windows or macOS desktop. Scan a QR code, pick a capture scenario, and you're live in your game or Discord call — no cables, no cloud account, no subscription.</p>
+      <p class="lede">Phone Mic turns any Android phone into a low-latency wireless microphone for your Windows or macOS desktop. Scan a QR code, pick a capture scenario, and you're live in your game or Discord call — no cables, no cloud account, no subscription. Want video too? It doubles as a webcam.</p>
       <div class="cta-row">
         <a class="btn btn-primary" href="#download">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
@@ -233,7 +233,7 @@
         </a>
         <a class="btn btn-ghost" href="#how-it-works">See how it works</a>
       </div>
-      <div class="hero-note">v0.2.0 · Windows 10/11 / macOS · Android 7.0+</div>
+      <div class="hero-note">v0.3.0 ·Windows 10/11 / macOS · Android 7.0+</div>
     </div>
 
     <div class="diagram">
@@ -345,6 +345,11 @@
         <h3>No cloud, no account</h3>
         <p>Everything runs over your own WiFi. No signup, no relay server, no data leaving your network.</p>
       </div>
+      <div class="feature" style="grid-column:1/-1;">
+        <div class="icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
+        <h3>Camera too</h3>
+        <p>Flip on "Send camera" and the phone's back or front camera becomes a webcam on your desktop, in 720p or 1080p. Preview, mirror and rotate it from the desktop app.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -357,7 +362,7 @@
       <p style="margin-top:12px;">Most "phone as mic" apps either need an account or route audio through a third-party relay. Phone Mic doesn't — the phone talks directly to your PC over WiFi, and that's the whole path.</p>
     </div>
     <ul>
-      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span><b>No servers.</b> Pairing, audio, and quality feedback all stay on your LAN.</span></li>
+      <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span><b>No servers.</b> Pairing, audio, video and quality feedback all stay on your LAN.</span></li>
       <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span><b>No account.</b> Install and go — nothing to sign up for.</span></li>
       <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span><b>Open source.</b> Every line of the pairing and audio pipeline is public — read it, fork it, send a PR.</span></li>
     </ul>
@@ -431,6 +436,62 @@
         </ol>
         <p style="font-size:0.82rem; margin-top:10px;">No Homebrew and don't want to install it? BlackHole's <a href="https://github.com/ExistentialAudio/BlackHole" target="_blank" rel="noopener" style="color:var(--accent-2); text-decoration:underline;">GitHub releases</a> also has a manual installer.</p>
         <a class="btn btn-ghost btn-sm" href="https://existential.audio/blackhole/" target="_blank" rel="noopener" style="margin-top:14px;">Official site</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="virtual-camera" style="padding-top:0;">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Optional</span>
+      <h2>Want the webcam too? Install OBS Studio.</h2>
+      <p style="margin-top:10px;">The phone's camera always shows up as a live preview in the desktop app. To use it
+      as a webcam in Discord, Zoom or your browser, Phone Mic feeds it into OBS Studio's built-in
+      virtual camera. Free, and OBS doesn't even need to be running.</p>
+    </div>
+    <div class="cable-grid">
+      <div class="cable-card">
+        <div class="cable-head">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+          <h3>Windows — OBS Studio</h3>
+        </div>
+        <p>Installing OBS registers the "OBS Virtual Camera" device. That's all the setup there is.</p>
+        <div class="cable-code">
+          <code>Then pick: "OBS Virtual Camera"</code>
+          <button class="copy-btn" type="button" data-copy-target="prompt-obs-windows" aria-label="Copy AI agent prompt">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span>Copy AI prompt</span>
+          </button>
+        </div>
+        <textarea id="prompt-obs-windows" hidden>Install OBS Studio on my Windows PC so the Phone Mic desktop app can use OBS's virtual camera as a webcam. Download the Windows installer from https://obsproject.com/ and run it with the default options (it registers the "OBS Virtual Camera" device). I don't need to configure or keep OBS running. Afterward, help me select "OBS Virtual Camera" as the camera in Discord/Zoom/my browser, and if Phone Mic says the virtual camera is busy, make sure OBS's own "Start Virtual Camera" is turned off.</textarea>
+        <ol class="cable-steps">
+          <li>Download and install OBS Studio from the link below (default options).</li>
+          <li>Start the receiver and turn on <b>Send camera</b> on the phone.</li>
+          <li>In Discord, Zoom or your browser, choose <b>OBS Virtual Camera</b>. Don't also start OBS's own virtual camera.</li>
+        </ol>
+        <a class="btn btn-ghost btn-sm" href="https://obsproject.com/" target="_blank" rel="noopener" style="margin-top:14px;">Download OBS Studio</a>
+      </div>
+      <div class="cable-card">
+        <div class="cable-head">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.415 2.06-1.246 2.76-.885.75-1.858 1.14-2.916 1.06-.03-1.12.41-2.05 1.28-2.79.83-.7 1.79-1.08 2.882-1.03zM20.5 17.14c-.53 1.19-1.17 2.28-1.93 3.27-1.04 1.36-2.09 2.72-3.6 2.72-1.47 0-1.95-.9-3.6-.9-1.65 0-2.24.88-3.6.9-1.5.02-2.63-1.42-3.68-2.78-1.98-2.57-3.48-6.7-1.47-9.62.99-1.44 2.62-2.36 4.4-2.4 1.36-.02 2.5.9 3.28.9.78 0 2.2-1.1 3.72-.94.63.03 2.39.25 3.62 1.92-1.02.65-1.82 1.7-1.82 3.02 0 1.6.98 2.48 1.28 2.85z"/></svg>
+          <h3>macOS — OBS Studio 30+</h3>
+        </div>
+        <p>macOS 13 or newer. OBS's camera extension needs approving once, by starting its virtual camera a single time.</p>
+        <div class="cable-code">
+          <code>brew install --cask obs</code>
+          <button class="copy-btn" type="button" data-copy-target="prompt-obs-macos" aria-label="Copy AI agent prompt">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span>Copy AI prompt</span>
+          </button>
+        </div>
+        <textarea id="prompt-obs-macos" hidden>Install OBS Studio (version 30 or newer) on my Mac (macOS 13+) so the Phone Mic desktop app can use OBS's virtual camera as a webcam. Install it from https://obsproject.com/ or with Homebrew: brew install --cask obs. Then open OBS once, click "Start Virtual Camera", approve the system extension in System Settings if macOS asks, click "Stop Virtual Camera", and quit OBS. Afterward, help me select "OBS Virtual Camera" as the camera in Discord/Zoom/my browser.</textarea>
+        <ol class="cable-steps">
+          <li>Install OBS Studio 30+ (link below, or <code>brew install --cask obs</code>).</li>
+          <li>Open OBS, click <b>Start Virtual Camera</b>, approve the extension if asked, then <b>Stop</b> it and quit OBS.</li>
+          <li>Pick <b>OBS Virtual Camera</b> in Discord, Zoom or your browser.</li>
+        </ol>
+        <a class="btn btn-ghost btn-sm" href="https://obsproject.com/" target="_blank" rel="noopener" style="margin-top:14px;">Download OBS Studio</a>
       </div>
     </div>
   </div>

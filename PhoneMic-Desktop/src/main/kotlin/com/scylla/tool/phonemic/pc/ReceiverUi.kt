@@ -4,7 +4,9 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
 import java.awt.BorderLayout
+import java.awt.CardLayout
 import java.awt.Color
+import java.awt.Cursor
 import java.awt.Dimension
 import java.awt.FlowLayout
 import java.awt.Font
@@ -13,9 +15,12 @@ import java.awt.Image
 import java.awt.RenderingHints
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.awt.image.BufferedImage
+import java.util.concurrent.atomic.AtomicReference
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
 import javax.sound.sampled.Mixer
@@ -70,10 +75,14 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
 
     companion object {
         private const val WINDOW_WIDTH = 720
-        private const val WINDOW_HEIGHT = 500
+        private const val WINDOW_HEIGHT = 570
         private const val CONTENT_PADDING = 24
         // Sidebar (QR side) is 2/5 of the window width, matching the "dominant QR" design intent.
         private const val SIDEBAR_WIDTH = (WINDOW_WIDTH * 2) / 5
+        private const val CARD_QR = "qr"
+        private const val CARD_PREVIEW = "preview"
+        // Wrap width for the camera status line, so long hints break instead of widening the column.
+        private const val CAMERA_STATUS_WIDTH = 330
     }
 
     private data class MixerItem(val info: Mixer.Info) {
@@ -98,7 +107,23 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
     private val copyIpButton = IconTextButton(IconFont.COPY, "Copy", Brand.accent2)
     private val pairingLabel = label("Not paired", Brand.inkFaint, 11f, bold = true)
 
-    private var currentPin = AudioReceiver.generatePin()
+    // Camera: the sidebar swaps the QR for a live preview while the phone's video is connected.
+    private val sidebarHeading = label("Scan to pair", Brand.inkMuted, 12f, bold = true)
+    private val sidebarSubtitle = label("Open Phone Mic app on Android", Brand.inkFaint, 10.5f)
+    private val sidebarCards = JPanel(CardLayout())
+    private val previewPanel = VideoPreviewPanel(14)
+    private val cameraStatusLabel = label("", Brand.inkFaint, 11f)
+    private val mirrorButton = IconTextButton(IconFont.MIRROR, "Mirror", Brand.inkMuted)
+    private val rotateButton = IconTextButton(IconFont.ROTATE, "Rotate", Brand.inkMuted)
+    private val popOutButton = IconTextButton(IconFont.POP_OUT, "Pop out", Brand.inkMuted)
+    private var popOutWindow: JFrame? = null
+    private var popOutPanel: VideoPreviewPanel? = null
+    private val pendingPreview = AtomicReference<BufferedImage?>(null)
+    private var cameraPipeline: CameraPipeline? = null
+    private var videoReceiver: VideoReceiver? = null
+
+    // Read by VideoReceiver's accept thread to check the phone's PIN.
+    @Volatile private var currentPin = AudioReceiver.generatePin()
     private var receiver: AudioReceiver? = null
 
     init {
@@ -133,11 +158,28 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
         }
         deviceSelect.onSelectionChanged = { deviceSelect.selectedItem?.info?.name?.let { PcPrefs.setMixerName(it) } }
 
+        mirrorButton.tintColor = if (PcPrefs.getCameraMirror()) Brand.accent2 else Brand.inkMuted
+        mirrorButton.addActionListener {
+            val on = !PcPrefs.getCameraMirror()
+            PcPrefs.setCameraMirror(on)
+            cameraPipeline?.mirror = on
+            mirrorButton.tintColor = if (on) Brand.accent2 else Brand.inkMuted
+        }
+        rotateButton.addActionListener {
+            val turns = (PcPrefs.getCameraRotate() + 1) % 4
+            PcPrefs.setCameraRotate(turns)
+            cameraPipeline?.userQuarterTurns = turns
+        }
+        popOutButton.addActionListener { openPopOut() }
+
         applyIdleStyle()
+        setCameraStatus("Off", CameraPipeline.Tone.MUTED)
 
         addWindowListener(object : WindowAdapter() {
             override fun windowClosing(e: WindowEvent) {
                 receiver?.stop()
+                // Release the virtual webcam properly so apps using it don't freeze on our last frame.
+                stopCamera()
                 exitProcess(0)
             }
         })
@@ -160,10 +202,8 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
         col.preferredSize = Dimension(SIDEBAR_WIDTH, 0)
         col.maximumSize = Dimension(SIDEBAR_WIDTH, Int.MAX_VALUE)
 
-        val heading = label("Scan to pair", Brand.inkMuted, 12f, bold = true)
-        heading.alignmentX = JLabel.CENTER_ALIGNMENT
-        val subtitle = label("Open Phone Mic app on Android", Brand.inkFaint, 10.5f)
-        subtitle.alignmentX = JLabel.CENTER_ALIGNMENT
+        sidebarHeading.alignmentX = JLabel.CENTER_ALIGNMENT
+        sidebarSubtitle.alignmentX = JLabel.CENTER_ALIGNMENT
 
         qrLabel.horizontalAlignment = JLabel.CENTER
         qrLabel.isOpaque = false
@@ -175,6 +215,18 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
         qrCard.preferredSize = Dimension(240, 240)
         qrCard.maximumSize = Dimension(240, 240)
         qrCard.add(qrLabel, BorderLayout.CENTER)
+
+        previewPanel.cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        previewPanel.toolTipText = "Click to pop out"
+        previewPanel.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) = openPopOut()
+        })
+        sidebarCards.isOpaque = false
+        sidebarCards.alignmentX = JLabel.CENTER_ALIGNMENT
+        sidebarCards.preferredSize = Dimension(240, 240)
+        sidebarCards.maximumSize = Dimension(240, 240)
+        sidebarCards.add(qrCard, CARD_QR)
+        sidebarCards.add(previewPanel, CARD_PREVIEW)
 
         val card = RoundedPanel(12, Brand.bg2, Brand.edge)
         card.layout = BorderLayout(8, 0)
@@ -205,11 +257,11 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
 
         pairingLabel.alignmentX = JLabel.CENTER_ALIGNMENT
 
-        col.add(heading)
+        col.add(sidebarHeading)
         col.add(Box.createVerticalStrut(2))
-        col.add(subtitle)
+        col.add(sidebarSubtitle)
         col.add(Box.createVerticalStrut(16))
-        col.add(qrCard)
+        col.add(sidebarCards)
         col.add(Box.createVerticalStrut(18))
         col.add(card)
         col.add(Box.createVerticalStrut(10))
@@ -275,9 +327,31 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
         boostBlock.add(Box.createVerticalStrut(10))
         boostBlock.add(boostSlider)
 
+        val cameraButtons = JPanel(FlowLayout(FlowLayout.LEFT, 0, 0))
+        cameraButtons.isOpaque = false
+        cameraButtons.alignmentX = JLabel.LEFT_ALIGNMENT
+        cameraButtons.add(mirrorButton)
+        cameraButtons.add(Box.createHorizontalStrut(10))
+        cameraButtons.add(rotateButton)
+        cameraButtons.add(Box.createHorizontalStrut(10))
+        cameraButtons.add(popOutButton)
+        cameraButtons.maximumSize = Dimension(Int.MAX_VALUE, cameraButtons.preferredSize.height)
+
+        val cameraBlock = JPanel()
+        cameraBlock.isOpaque = false
+        cameraBlock.layout = BoxLayout(cameraBlock, BoxLayout.Y_AXIS)
+        cameraBlock.alignmentX = JLabel.LEFT_ALIGNMENT
+        cameraBlock.add(label("Camera", Brand.inkMuted, 11f, bold = true))
+        cameraBlock.add(Box.createVerticalStrut(6))
+        cameraBlock.add(cameraStatusLabel)
+        cameraBlock.add(Box.createVerticalStrut(4))
+        cameraBlock.add(cameraButtons)
+
         fields.add(fieldBlock("Output device", deviceSelect))
         fields.add(fieldBlock("Listen port", portRow))
         fields.add(boostBlock)
+        fields.add(Box.createVerticalStrut(18))
+        fields.add(cameraBlock)
 
         // BoxLayout's perpendicular-axis stretch (does a LEFT-aligned child expand to fill
         // the container's width?) turned out unreliable to depend on here - these wrappers
@@ -348,6 +422,7 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
 
     private fun regeneratePairingCode() {
         currentPin = receiver?.regeneratePin() ?: AudioReceiver.generatePin()
+        videoReceiver?.dropClient() // the old PIN no longer authorizes the phone's video either
         renderPairingCode()
         pairingLabel.text = "Not paired"
         pairingLabel.foreground = Brand.inkFaint
@@ -415,6 +490,7 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
                         levelBar.value = 0
                         receiver?.stop()
                         receiver = null
+                        stopCamera()
                         resetControls()
                     }
                 }
@@ -422,9 +498,11 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
                 it.gain = boostSlider.value / 100f
                 it.start()
             }
+            startCamera(port)
         } else {
             receiver?.stop()
             receiver = null
+            stopCamera()
             levelBar.value = 0
             pairingLabel.text = "Not paired"
             pairingLabel.foreground = Brand.inkFaint
@@ -443,6 +521,111 @@ class ReceiverUi : JFrame("Phone Mic - Desktop Receiver") {
             lossPercent <= 15 -> "Poor"
             else -> "Critical"
         }
+    }
+
+    /** Video runs alongside the audio receiver on the same port number (TCP instead of UDP). */
+    private fun startCamera(port: Int) {
+        lateinit var pipeline: CameraPipeline
+        pipeline = CameraPipeline(
+            onPreview = { image -> postPreview(pipeline, image) },
+            onStatus = { text, tone ->
+                SwingUtilities.invokeLater { if (cameraPipeline === pipeline) setCameraStatus(text, tone) }
+            }
+        )
+        pipeline.mirror = PcPrefs.getCameraMirror()
+        pipeline.userQuarterTurns = PcPrefs.getCameraRotate()
+        cameraPipeline = pipeline
+        pipeline.waiting()
+        videoReceiver = VideoReceiver(
+            port = port,
+            pinProvider = { currentPin },
+            onFrame = pipeline::onFrame,
+            onState = { connected, address ->
+                if (!connected) pipeline.disconnected()
+                SwingUtilities.invokeLater {
+                    if (cameraPipeline === pipeline) showCameraPreview(if (connected) address else null)
+                }
+            },
+            onError = { message ->
+                SwingUtilities.invokeLater {
+                    if (cameraPipeline === pipeline) setCameraStatus("Camera error: $message", CameraPipeline.Tone.ERROR)
+                }
+            }
+        ).also { it.start() }
+    }
+
+    private fun stopCamera() {
+        videoReceiver?.stop()
+        videoReceiver = null
+        cameraPipeline?.close()
+        cameraPipeline = null
+        pendingPreview.set(null)
+        showCameraPreview(null)
+        setCameraStatus("Off", CameraPipeline.Tone.MUTED)
+    }
+
+    /** Hands a composed frame to the EDT, coalescing: only the newest pending frame gets painted. */
+    private fun postPreview(pipeline: CameraPipeline, image: BufferedImage) {
+        if (pendingPreview.getAndSet(image) != null) return
+        SwingUtilities.invokeLater {
+            val latest = pendingPreview.getAndSet(null) ?: return@invokeLater
+            if (cameraPipeline !== pipeline) return@invokeLater
+            previewPanel.image = latest
+            popOutPanel?.image = latest
+        }
+    }
+
+    private fun showCameraPreview(address: String?) {
+        val cards = sidebarCards.layout as CardLayout
+        if (address != null) {
+            cards.show(sidebarCards, CARD_PREVIEW)
+            sidebarHeading.text = "Camera preview"
+            sidebarSubtitle.text = "From $address · click to pop out"
+        } else {
+            cards.show(sidebarCards, CARD_QR)
+            sidebarHeading.text = "Scan to pair"
+            sidebarSubtitle.text = "Open Phone Mic app on Android"
+            previewPanel.image = null
+            popOutPanel?.image = null
+        }
+    }
+
+    private fun setCameraStatus(text: String, tone: CameraPipeline.Tone) {
+        val escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        cameraStatusLabel.text = "<html><div style='width:${CAMERA_STATUS_WIDTH}px'>$escaped</div></html>"
+        cameraStatusLabel.foreground = when (tone) {
+            CameraPipeline.Tone.MUTED -> Brand.inkFaint
+            CameraPipeline.Tone.GOOD -> Brand.good
+            CameraPipeline.Tone.WARN -> Brand.warn
+            CameraPipeline.Tone.ERROR -> Brand.critical
+        }
+    }
+
+    /** Resizable camera-only window: for OBS window capture, or when no virtual camera is installed. */
+    private fun openPopOut() {
+        popOutWindow?.let {
+            it.toFront()
+            return
+        }
+        val panel = VideoPreviewPanel(0)
+        panel.image = previewPanel.image
+        panel.preferredSize = Dimension(960, 540)
+        val window = JFrame("Phone Mic Camera")
+        window.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
+        window.contentPane.background = Color.BLACK
+        window.contentPane.add(panel)
+        window.iconImage = iconImage
+        window.pack()
+        window.setLocationRelativeTo(this)
+        window.addWindowListener(object : WindowAdapter() {
+            override fun windowClosed(e: WindowEvent) {
+                popOutWindow = null
+                popOutPanel = null
+            }
+        })
+        popOutWindow = window
+        popOutPanel = panel
+        window.isVisible = true
     }
 
     private fun resetControls() {

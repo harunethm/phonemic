@@ -5,11 +5,17 @@ import java.net.ServerSocket
 import java.net.Socket
 import javax.swing.SwingUtilities
 import kotlin.concurrent.thread
+import kotlin.system.exitProcess
 
 // Loopback port doubles as the single-instance lock: bind succeeds only for the first process.
 private const val SINGLE_INSTANCE_PORT = 47653
 
-fun main() {
+fun main(args: Array<String>) {
+    // Developer checks for the camera path (see SelfTest.kt); they never touch the UI or the lock.
+    when (args.firstOrNull()) {
+        "--video-selftest" -> exitProcess(SelfTest.runVideoSelfTest())
+        "--vcam-test" -> exitProcess(SelfTest.runVirtualCameraTest())
+    }
     val lock = try {
         ServerSocket(SINGLE_INSTANCE_PORT, 1, InetAddress.getLoopbackAddress())
     } catch (_: Exception) {

@@ -2,6 +2,19 @@
 
 Releases are tagged per platform (`windows-vX.Y.Z`, `macos-vX.Y.Z`, `android-vX.Y.Z`); `<platform>-latest` always points at the newest build. Versions move together across platforms.
 
+## 0.3.0
+
+### Android
+- New "Send camera" option: stream the phone's back or front camera along with the mic (720p or 1080p).
+- Flip between cameras while streaming.
+
+### Desktop
+- Live camera preview, with Mirror, Rotate and a pop-out window.
+- Shows up as a webcam through OBS Virtual Camera when OBS Studio is installed.
+
+### Protocol
+- Video is H.264 over TCP on the same port number as audio. Audio is unchanged, so older apps still pair for mic-only use. Allow the desktop app for TCP in your firewall.
+
 ## 0.2.0
 
 ### Desktop

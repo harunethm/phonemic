@@ -25,4 +25,19 @@ object PcPrefs {
     fun setBoost(boost: Int) {
         prefs.putInt(KEY_BOOST, boost)
     }
+
+    /** Horizontal flip applied to the phone camera before preview + virtual webcam. */
+    fun getCameraMirror(): Boolean = prefs.getBoolean(KEY_CAMERA_MIRROR, false)
+    fun setCameraMirror(mirror: Boolean) {
+        prefs.putBoolean(KEY_CAMERA_MIRROR, mirror)
+    }
+
+    /** Extra clockwise quarter turns on top of the phone's own orientation, 0..3. */
+    fun getCameraRotate(): Int = prefs.getInt(KEY_CAMERA_ROTATE, 0).mod(4)
+    fun setCameraRotate(quarterTurns: Int) {
+        prefs.putInt(KEY_CAMERA_ROTATE, quarterTurns.mod(4))
+    }
+
+    private const val KEY_CAMERA_MIRROR = "camera_mirror"
+    private const val KEY_CAMERA_ROTATE = "camera_rotate"
 }

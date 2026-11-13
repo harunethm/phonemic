@@ -12,6 +12,9 @@ object Prefs {
     private const val KEY_NOISE_REDUCTION = "noise_reduction"
     private const val KEY_MONITORING = "monitoring"
     private const val KEY_SUPPRESS_HIGH_GAIN_WARNING = "suppress_high_gain_warning"
+    private const val KEY_CAMERA_ENABLED = "camera_enabled"
+    private const val KEY_CAMERA_FACING = "camera_facing"
+    private const val KEY_CAMERA_QUALITY = "camera_quality"
     private const val DEFAULT_PORT = 5005
 
     private fun prefs(context: Context) =
@@ -68,6 +71,47 @@ object Prefs {
 
     fun setHighGainWarningSuppressed(context: Context, suppressed: Boolean) {
         prefs(context).edit().putBoolean(KEY_SUPPRESS_HIGH_GAIN_WARNING, suppressed).apply()
+    }
+
+    /** Stream the camera too (an add-on to the mic stream, never on its own). */
+    fun isCameraEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_CAMERA_ENABLED, false)
+
+    fun setCameraEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_CAMERA_ENABLED, enabled).apply()
+    }
+
+    fun getCameraFacing(context: Context): CameraFacing =
+        CameraFacing.fromStorageKey(prefs(context).getString(KEY_CAMERA_FACING, null))
+
+    fun setCameraFacing(context: Context, facing: CameraFacing) {
+        prefs(context).edit().putString(KEY_CAMERA_FACING, facing.storageKey).apply()
+    }
+
+    fun getCameraQuality(context: Context): CameraQuality =
+        CameraQuality.fromStorageKey(prefs(context).getString(KEY_CAMERA_QUALITY, null))
+
+    fun setCameraQuality(context: Context, quality: CameraQuality) {
+        prefs(context).edit().putString(KEY_CAMERA_QUALITY, quality.storageKey).apply()
+    }
+}
+
+enum class CameraFacing(val storageKey: String) {
+    BACK("back"),
+    FRONT("front");
+
+    companion object {
+        fun fromStorageKey(key: String?): CameraFacing = entries.find { it.storageKey == key } ?: BACK
+    }
+}
+
+/** Encoder presets: size is in sensor (landscape) orientation, 30 fps. */
+enum class CameraQuality(val storageKey: String, val width: Int, val height: Int, val bitrate: Int) {
+    HD("720p", 1280, 720, 4_000_000),
+    FULL_HD("1080p", 1920, 1080, 8_000_000);
+
+    companion object {
+        fun fromStorageKey(key: String?): CameraQuality = entries.find { it.storageKey == key } ?: HD
     }
 }
 

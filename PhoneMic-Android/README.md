@@ -48,6 +48,12 @@ Before pairing, install a virtual audio cable on the desktop side — see the
    prompted.
 4. The desktop side switches to "Paired with `<phone IP>`" and starts receiving.
 
+**Camera (optional):** turn on **Send camera** before starting, pick **Back** or
+**Front** and **720p** or **1080p**, and grant the camera permission when asked. The
+desktop shows a live preview and, with OBS Studio installed, feeds it to the
+"OBS Virtual Camera" webcam. While streaming, **Flip camera** switches cameras. If the
+camera permission is denied, the mic still streams on its own.
+
 Re-pair later with **Re-pair with a PC** on the phone, or click **New code** on the
 desktop first to invalidate the old pairing.
 
@@ -67,6 +73,19 @@ desktop first to invalidate the old pairing.
     (~965 bytes/packet, under the ~1472-byte MTU to avoid IP fragmentation).
   - `QUALITY` (desktop → phone, `0x04`): `[type][lossPercent 0-100]` — sent about once
     a second once paired, drives the Excellent/Good/Poor/Lost badge.
+  - `BYE` (phone → desktop, `0x05`): `[type]` — the phone stopped streaming.
+- **Video** (only with **Send camera** on): H.264 from the phone's hardware encoder
+  (~4 Mbit/s at 720p, ~8 at 1080p, 30 fps, keyframe every 2 s) over **TCP** to the same
+  port number as the audio. Integers big-endian:
+  - Handshake, phone → desktop: `'P' 'M' 'V' '1' [pinLen][pin utf8]`; desktop answers
+    one status byte, `0` = OK, `1` = wrong PIN (then closes).
+  - `FRAME` (phone → desktop, `0x10`): `[type][len u32][ptsMicros u64][flags][H.264 Annex-B]`.
+    Flags: bit 0 keyframe, bits 1-2 clockwise quarter turns to show it upright, bit 3
+    front camera. Keyframes carry SPS/PPS in front.
+  - `KEYFRAME_REQUEST` (desktop → phone, `0x20`): `[type]`, sent when the decoder needs
+    to resync.
+  - If the WiFi can't keep up, the phone drops queued frames (never more than ~0.5 s)
+    and resumes at a fresh keyframe, so video lags at most briefly and audio is unaffected.
 - **Pairing**: desktop generates a random PIN and QR (`ip:port:pin`); the phone scans
   it or the values are typed by hand. No cloud/relay server — everything stays on
   the LAN.
@@ -82,6 +101,12 @@ desktop first to invalidate the old pairing.
   the desktop app was restarted (fresh PIN every launch). Re-pair from the phone.
 - **Choppy audio**: local WiFi congestion — move closer to the router or reduce other
   WiFi traffic.
+- **Camera stuck on "connecting to desktop"** or "Can't reach the desktop for camera":
+  video uses TCP on the same port number as the audio's UDP. Allow the desktop app
+  through its firewall for TCP too (Windows usually asks the first time).
+- **"Desktop app doesn't support camera, update it"**: the desktop receiver is older
+  than 0.3.0. Mic streaming keeps working.
+- **"Camera: pairing code rejected"**: the desktop's code changed. Re-pair from the phone.
 - **Echo/feedback**: the app uses the `VOICE_COMMUNICATION` audio source (hardware
   echo cancellation) — for best results use headphones on the desktop side instead of
   speakers.

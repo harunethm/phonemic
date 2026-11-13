@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -78,10 +79,14 @@ class MainActivity : ComponentActivity() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
-        val allGranted = results.values.all { it }
+        // Camera is optional: without it we still stream the mic.
+        val requiredGranted = results.filterKeys { it != Manifest.permission.CAMERA }.values.all { it }
         val pending = pendingStart
         pendingStart = null
-        if (allGranted && pending != null) {
+        if (requiredGranted && pending != null) {
+            if (results[Manifest.permission.CAMERA] == false) {
+                Toast.makeText(this, "Camera permission denied, streaming mic only", Toast.LENGTH_LONG).show()
+            }
             beginStreaming(pending.first, pending.second)
         }
     }
@@ -93,7 +98,8 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     PhoneMicScreen(
                         onStartRequested = ::requestStart,
-                        onStopRequested = ::stopStreaming
+                        onStopRequested = ::stopStreaming,
+                        onFlipCameraRequested = ::flipCamera
                     )
                 }
             }
@@ -109,6 +115,7 @@ class MainActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(Manifest.permission.POST_NOTIFICATIONS)
             }
+            if (Prefs.isCameraEnabled(this@MainActivity)) add(Manifest.permission.CAMERA)
         }
         val missing = required.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
@@ -128,12 +135,21 @@ class MainActivity : ComponentActivity() {
             putExtra(MicStreamService.EXTRA_HOST, host)
             putExtra(MicStreamService.EXTRA_PORT, port)
             putExtra(MicStreamService.EXTRA_PIN, Prefs.getPin(this@MainActivity))
+            // A camera-type foreground service without the permission would crash on start.
+            val cameraGranted = ContextCompat.checkSelfPermission(
+                this@MainActivity, Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+            putExtra(MicStreamService.EXTRA_CAMERA, Prefs.isCameraEnabled(this@MainActivity) && cameraGranted)
         }
         ContextCompat.startForegroundService(this, intent)
     }
 
     private fun stopStreaming() {
         stopService(Intent(this, MicStreamService::class.java))
+    }
+
+    private fun flipCamera() {
+        startService(Intent(this, MicStreamService::class.java).setAction(MicStreamService.ACTION_FLIP_CAMERA))
     }
 }
 
@@ -165,7 +181,8 @@ private fun GlowBlob(color: Color, alpha: Float, modifier: Modifier = Modifier) 
 @Composable
 fun PhoneMicScreen(
     onStartRequested: (host: String, port: Int) -> Unit,
-    onStopRequested: () -> Unit
+    onStopRequested: () -> Unit,
+    onFlipCameraRequested: () -> Unit
 ) {
     val context = LocalContext.current
     val state by MicStreamService.status.collectAsState()
@@ -179,6 +196,9 @@ fun PhoneMicScreen(
     var scenario by remember { mutableStateOf(Prefs.getScenario(context)) }
     var noiseReductionEnabled by remember { mutableStateOf(Prefs.isNoiseReductionEnabled(context)) }
     var monitoringEnabled by remember { mutableStateOf(Prefs.isMonitoringEnabled(context)) }
+    var cameraEnabled by remember { mutableStateOf(Prefs.isCameraEnabled(context)) }
+    var cameraFacing by remember { mutableStateOf(Prefs.getCameraFacing(context)) }
+    var cameraQuality by remember { mutableStateOf(Prefs.getCameraQuality(context)) }
     var showHighGainWarning by remember { mutableStateOf(false) }
     var suppressHighGainNextTime by remember { mutableStateOf(false) }
 
@@ -230,7 +250,7 @@ fun PhoneMicScreen(
                 Text(text = "Phone Mic", style = MaterialTheme.typography.headlineMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Stream this phone's microphone to your desktop over Wi-Fi.",
+                    text = "Stream this phone's microphone and camera to your desktop over Wi-Fi.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -404,6 +424,63 @@ fun PhoneMicScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column {
+                        ToggleRow(
+                            label = "Send camera",
+                            helper = "Use this phone as a webcam too",
+                            checked = cameraEnabled,
+                            enabled = !state.isStreaming,
+                            onCheckedChange = {
+                                cameraEnabled = it
+                                Prefs.setCameraEnabled(context, it)
+                            }
+                        )
+                        if (cameraEnabled) {
+                            HorizontalDivider(color = PhoneMicEdge)
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                SegmentedControl(
+                                    options = CameraFacing.entries,
+                                    selected = cameraFacing,
+                                    enabled = !state.isStreaming,
+                                    onSelected = {
+                                        cameraFacing = it
+                                        Prefs.setCameraFacing(context, it)
+                                    },
+                                    label = {
+                                        when (it) {
+                                            CameraFacing.BACK -> "Back"
+                                            CameraFacing.FRONT -> "Front"
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                SegmentedControl(
+                                    options = CameraQuality.entries,
+                                    selected = cameraQuality,
+                                    enabled = !state.isStreaming,
+                                    onSelected = {
+                                        cameraQuality = it
+                                        Prefs.setCameraQuality(context, it)
+                                    },
+                                    label = {
+                                        when (it) {
+                                            CameraQuality.HD -> "720p"
+                                            CameraQuality.FULL_HD -> "1080p"
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
                 validationError?.let {
                     Text(text = it, color = MaterialTheme.colorScheme.error)
                 }
@@ -429,6 +506,24 @@ fun PhoneMicScreen(
                             .fillMaxWidth()
                             .height(12.dp)
                     )
+                    state.cameraInfo?.let { info ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(text = info, fontFamily = PlexMonoFamily, fontSize = 12.sp)
+                        state.cameraError?.let {
+                            Text(text = it, color = MaterialTheme.colorScheme.error)
+                        }
+                        TextButton(
+                            onClick = {
+                                // Keep the (disabled) Back/Front selector in step with the live camera.
+                                cameraFacing = if (cameraFacing == CameraFacing.BACK) CameraFacing.FRONT else CameraFacing.BACK
+                                onFlipCameraRequested()
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text("Flip camera", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
 
